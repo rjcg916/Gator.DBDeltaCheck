@@ -1,9 +1,11 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using DB.IntegrationTests.Tests;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
 
 namespace Gator.DBDeltaCheck.Core.Abstractions.Factories;
 
 public interface ICleanupStrategyFactory
 {
-    public ICleanupStrategy Create(string name);
+    ICleanupStrategy GetStrategy(string cleanupType);
 }
 

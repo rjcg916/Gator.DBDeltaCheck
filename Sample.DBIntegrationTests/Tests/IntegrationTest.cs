@@ -1,6 +1,7 @@
 ﻿using DBDeltaCheck.Core.Abstractions;
 using DBDeltaCheck.Core.Abstractions.Factories;
 using DBDeltaCheck.Core.Attributes;
+using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 using Gator.DBDeltaCheck.Core.Models;
 using Newtonsoft.Json;
@@ -11,23 +12,23 @@ using Xunit.Microsoft.DependencyInjection.Abstracts;
 
 namespace DB.IntegrationTests.Tests;
 
-public class IntegrationTest  : TestBed<DependencyInjectionFixture>
+public class IntegrationTest : TestBed<DependencyInjectionFixture>
 {
 
     private readonly ISetupStrategyFactory _setupFactory;
-    private readonly IDatabaseOperations _dbRepository;
+    private readonly IDatabaseRepository _dbRepository;
     private readonly IDurableFunctionClient _durableFunctionClient;
     private readonly IActionStrategyFactory _actionFactory;
     private readonly IComparisonStrategyFactory _comparisonFactory;
     private readonly ICleanupStrategyFactory _cleanupFactory;
     private readonly Respawner _respawner;
 
-   public IntegrationTest(Xunit.ITestOutputHelper testOutputHelper, DependencyInjectionFixture fixture)
-            : base(testOutputHelper, fixture)
+    public IntegrationTest(Xunit.ITestOutputHelper testOutputHelper, DependencyInjectionFixture fixture)
+             : base(testOutputHelper, fixture)
     {
         // Resolve services from the fixture's ServiceProvider
         _setupFactory = _fixture.GetService<ISetupStrategyFactory>(testOutputHelper);
-        _dbRepository = _fixture.GetService<IDatabaseOperations>(testOutputHelper);
+        _dbRepository = _fixture.GetService<IDatabaseRepository>(testOutputHelper);
         _durableFunctionClient = _fixture.GetService<IDurableFunctionClient>(testOutputHelper);
         _actionFactory = _fixture.GetService<IActionStrategyFactory>(testOutputHelper);
         _comparisonFactory = _fixture.GetService<IComparisonStrategyFactory>(testOutputHelper);
@@ -45,33 +46,10 @@ public class IntegrationTest  : TestBed<DependencyInjectionFixture>
         foreach (var setupInstruction in testCase.Arrange.Actions)
         {
             var strategy = _setupFactory.GetStrategy(setupInstruction.Type);
-            await strategy.ExecuteAsync(_dbRepository.GetDbConnection(), setupInstruction.Config);
-        }
-        try
-        {
-            // Iterate through each assertion defined in the test case
-            foreach (var assertion in testCase.Validate.ExpectedState)
-            {
-                // Get the "after" state of the table from the database
-                var actualState = await _dbRepository.GetTableStateAsync<object>(assertion.Table);
-
-                // Load the expected state from the specified JSON file
-                var expectedStateJson = File.ReadAllText(Path.Combine("TestData", assertion.ExpectedDataFilePath));
-                var expectedState = JsonConvert.DeserializeObject<List<object>>(expectedStateJson);
-
-                // Use the factory to get the correct comparison strategy
-                var comparisonStrategy = _comparisonFactory.GetStrategy(assertion.ComparisonStrategy.Name);
-
-                // Execute the assertion using the chosen strategy
-                comparisonStrategy.AssertState(actualState, expectedState, assertion.ComparisonStrategy.Options);
-            }
-            ;
-        }
-        catch { 
-        
+            await strategy.ExecuteAsync(_dbRepository, setupInstruction.Config);
         }
 
-
+ 
         try
         {
             // =================================================================
