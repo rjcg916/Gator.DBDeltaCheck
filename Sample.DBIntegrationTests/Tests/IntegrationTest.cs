@@ -1,15 +1,13 @@
-﻿using Sample.DBIntegrationTests.Fixtures;
-using Gator.DBDeltaCheck.Core.Abstractions;
+﻿using DBDeltaCheck.Core.Abstractions;
+using DBDeltaCheck.Core.Abstractions.Factories;
+using DBDeltaCheck.Core.Attributes;
+using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 using Gator.DBDeltaCheck.Core.Models;
 using Newtonsoft.Json;
 using Respawn;
+using Sample.DBIntegrationTests.Fixtures;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Microsoft.DependencyInjection.Abstracts;
-using Gator.DBDeltaCheck.Core.Abstractions.Factories;
-using DBDeltaCheck.Core.Abstractions;
-using DBDeltaCheck.Core.Abstractions.Factories;
-using DBDeltaCheck.Core.Attributes;
 
 namespace DB.IntegrationTests.Tests;
 

@@ -1,7 +1,10 @@
-﻿using DBDeltaCheck.Core.Models;
+﻿using Gator.DBDeltaCheck.Core.Models;
 using Newtonsoft.Json;
 using System.Reflection;
+using Xunit;
 using Xunit.Sdk;
+using Xunit.v3;
+
 
 namespace DBDeltaCheck.Core.Attributes;
 
@@ -38,6 +41,16 @@ public class DatabaseStateTestAttribute : DataAttribute
             // If it's a single file
             yield return new object[] { LoadTestDefinition(absolutePath) };
         }
+    }
+
+    public override ValueTask<IReadOnlyCollection<ITheoryDataRow>> GetData(MethodInfo testMethod, DisposalTracker disposalTracker)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override bool SupportsDiscoveryEnumeration()
+    {
+        throw new NotImplementedException();
     }
 
     private MasterTestDefinition LoadTestDefinition(string filePath)
