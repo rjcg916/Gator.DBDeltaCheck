@@ -14,7 +14,6 @@ namespace DB.IntegrationTests.Tests;
 
 public class IntegrationTest : TestBed<DependencyInjectionFixture>
 {
-
     private readonly ISetupStrategyFactory _setupFactory;
     private readonly IDatabaseRepository _dbRepository;
     private readonly IDurableFunctionClient _durableFunctionClient;
@@ -40,10 +39,17 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
     [DatabaseStateTest("Path/To/Your/TestCases")]
     public async Task RunDatabaseStateTest(MasterTestDefinition testCase)
     {
+        // db cleanup
+        // 1. Reset the database to a pristine state using Respawn [6, 7]
+        //if (testCase.Arrange.DatabaseCleanup)
+        //{
+        //    await _respawner.ResetAsync(_dbRepository.GetDbConnection().ConnectionString);
+        //}
+
         // =================================================================
         // ARRANGE: Execute all setup actions defined in the JSON 
         // =================================================================
-        foreach (var setupInstruction in testCase.Arrange.Actions)
+        foreach (var setupInstruction in testCase.Act.Actions)
         {
             var strategy = _setupFactory.GetStrategy(setupInstruction.Type);
             await strategy.ExecuteAsync(_dbRepository, setupInstruction.Config);
@@ -57,10 +63,10 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             foreach (var actionInstruction in testCase.Act.Actions)
             {
-                // 3. Get the correct strategy from the factory based on the 'type' in JSON 
+                // Get the correct strategy from the factory based on the 'type' in JSON 
                 var actionStrategy = _actionFactory.GetStrategy(actionInstruction.Type);
 
-                // 4. Execute the strategy, passing its specific configuration
+                // Execute the strategy, passing its specific configuration
                 await actionStrategy.ExecuteAsync(actionInstruction.Config);
             }
 

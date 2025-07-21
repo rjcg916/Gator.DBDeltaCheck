@@ -21,12 +21,6 @@ public class MasterTestDefinition
     public ArrangeDefinition Arrange { get; set; }
 
     /// <summary>
-    /// Defines all the validation steps to be performed before the action.
-    /// </summary>
-    [JsonProperty("validate")]
-    public AssertDefinition Validate { get; set; }
-
-    /// <summary>
     /// Defines the primary action to be performed against the system.
     /// </summary>
     [JsonProperty("act")]

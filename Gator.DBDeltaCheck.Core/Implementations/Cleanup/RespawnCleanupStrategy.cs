@@ -1,5 +1,6 @@
 ﻿using Gator.DBDeltaCheck.Core.Abstractions;
 using Microsoft.Data.SqlClient;
+using Newtonsoft.Json.Linq;
 using Respawn;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Cleanup;
@@ -21,5 +22,10 @@ public class RespawnCleanupStrategy : ICleanupStrategy
         using var conn = new SqlConnection(connectionString);
         await conn.OpenAsync();
         await _respawner.ResetAsync(conn);
+    }
+
+    public Task ExecuteAsync(IDatabaseRepository repository, JObject config)
+    {
+        throw new NotImplementedException();
     }
 }

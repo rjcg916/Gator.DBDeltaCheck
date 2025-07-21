@@ -13,4 +13,9 @@ public class SetupStrategyFactory : ISetupStrategyFactory
     {
         throw new NotImplementedException();
     }
+
+    ISetupStrategy ISetupStrategyFactory.GetStrategy(string setupType)
+    {
+        throw new NotImplementedException();
+    }
 }

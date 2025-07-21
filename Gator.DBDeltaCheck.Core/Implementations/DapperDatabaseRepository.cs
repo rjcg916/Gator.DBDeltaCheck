@@ -35,4 +35,14 @@ public class DapperDatabaseRepository : IDatabaseRepository
     {
         throw new NotImplementedException();
     }
+
+    public Task<IEnumerable<T>> GetTableStateAsync<T>(string tableName) where T : class
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task SeedTableAsync(string tableName, string jsonContent)
+    {
+        throw new NotImplementedException();
+    }
 }

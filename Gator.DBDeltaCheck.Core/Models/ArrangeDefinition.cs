@@ -11,3 +11,5 @@ public class ArrangeDefinition
     [JsonProperty("actions")]
     public List<SetupActionInstruction> Actions { get; set; } = new List<SetupActionInstruction>();
 }
+
+

@@ -5,7 +5,6 @@ using Xunit;
 using Xunit.Sdk;
 using Xunit.v3;
 
-
 namespace DBDeltaCheck.Core.Attributes;
 
 public class DatabaseStateTestAttribute : DataAttribute
@@ -18,7 +17,8 @@ public class DatabaseStateTestAttribute : DataAttribute
         _filePath = filePath;
     }
 
-    public override IEnumerable<object[]> GetData(MethodInfo testMethod)
+
+    public override ValueTask<IReadOnlyCollection<ITheoryDataRow>> GetData(MethodInfo testMethod, DisposalTracker disposalTracker)
     {
         if (string.IsNullOrEmpty(_filePath))
         {
@@ -26,27 +26,27 @@ public class DatabaseStateTestAttribute : DataAttribute
         }
 
         var absolutePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, _filePath));
+        var testDefinitions = new List<ITheoryDataRow>();
 
         if (File.GetAttributes(absolutePath).HasFlag(FileAttributes.Directory))
         {
-            // If it's a directory, enumerate all.test.json files
             var files = Directory.GetFiles(absolutePath, "*.test.json", SearchOption.AllDirectories);
             foreach (var file in files)
             {
-                yield return new object[] { LoadTestDefinition(file) };
+                var testDef = LoadTestDefinition(file);
+                testDefinitions.Add(ConvertDataRow(new object[] { testDef }));
             }
         }
         else
         {
-            // If it's a single file
-            yield return new object[] { LoadTestDefinition(absolutePath) };
+            var testDef = LoadTestDefinition(absolutePath);
+            testDefinitions.Add(ConvertDataRow(new object[] { testDef }));
         }
+
+        return new ValueTask<IReadOnlyCollection<ITheoryDataRow>>(testDefinitions);
     }
 
-    public override ValueTask<IReadOnlyCollection<ITheoryDataRow>> GetData(MethodInfo testMethod, DisposalTracker disposalTracker)
-    {
-        throw new NotImplementedException();
-    }
+
 
     public override bool SupportsDiscoveryEnumeration()
     {

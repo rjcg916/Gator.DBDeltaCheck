@@ -56,7 +56,7 @@ public class DependencyInjectionFixture : TestBedFixture
     {
 
         var connectionString = configuration.GetConnectionString("DefaultConnection");
-        services.AddSingleton<IDatabaseOperations>(new DapperDatabaseRepository());
+        services.AddSingleton<IDatabaseRepository>(new DapperDatabaseRepository());
 
         services.AddHttpClient<HttpDurableFunctionClient>(client =>
         {
