@@ -1,7 +1,4 @@
-﻿using DB.IntegrationTests.Tests;
-using DBDeltaCheck.Core.Abstractions.Factories;
-using DBDeltaCheck.Core.ComparisonStrategies;
-using Gator.DBDeltaCheck.Core.Abstractions;
+﻿using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 using Gator.DBDeltaCheck.Core.Implementations;
 using Gator.DBDeltaCheck.Core.Implementations.Actions;
@@ -56,6 +53,20 @@ public class DependencyInjectionFixture : TestBedFixture
     {
 
         var connectionString = configuration.GetConnectionString("DefaultConnection");
+
+        // This ensures the schema service has access to the correct model.
+        services.AddDbContext<YourApplicationDbContext>(options =>
+            options.UseSqlServer(connectionString));
+
+        // 2. Register the IDbSchemaService as a singleton.
+        // The schema is immutable for a test run, so singleton is efficient.
+        services.AddSingleton<IDbSchemaService>(sp =>
+        {
+            // Resolve the DbContext that was just registered.
+            var dbContext = sp.GetRequiredService<YourApplicationDbContext>();
+            return new EfCoreSchemaService(dbContext);
+        });
+
         services.AddSingleton<IDatabaseRepository>(new DapperDatabaseRepository());
 
         services.AddHttpClient<HttpDurableFunctionClient>(client =>

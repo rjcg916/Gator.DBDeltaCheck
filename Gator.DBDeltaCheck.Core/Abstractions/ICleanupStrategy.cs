@@ -1,5 +1,4 @@
-﻿using DB.IntegrationTests.Tests;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 
 namespace Gator.DBDeltaCheck.Core.Abstractions;
 

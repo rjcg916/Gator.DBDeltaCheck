@@ -1,8 +1,6 @@
-﻿using DBDeltaCheck.Core.Abstractions;
-using DBDeltaCheck.Core.Abstractions.Factories;
-using DBDeltaCheck.Core.Attributes;
-using Gator.DBDeltaCheck.Core.Abstractions;
+﻿using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Abstractions.Factories;
+using Gator.DBDeltaCheck.Core.Attributes;
 using Gator.DBDeltaCheck.Core.Models;
 using Newtonsoft.Json;
 using Respawn;

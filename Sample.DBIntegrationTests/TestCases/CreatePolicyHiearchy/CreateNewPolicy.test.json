@@ -1,0 +1,36 @@
+{
+  "TestCaseName": "Happy Path: Successfully create a new policy and submission record",
+  "Setup": [
+    {
+      "Strategy": "HierarchicalSeed",
+      "Parameters": {
+        "DataFile": "data/new-policy-data.json"
+      }
+    }
+  ],
+  "Action": {
+    "Strategy": "DurableFunction",
+    "Parameters": {
+      "FunctionName": "ProcessPolicySubmission",
+      "Payload": {
+        "submissionId": "use_value_from_setup:PolicySubmissions:SubmissionId"
+      }
+    }
+  },
+  "Assert": [
+    {
+      "TableName": "Policies",
+      "ExpectedDataFile": "expected/policies-table-expected.json"
+    },
+    {
+      "TableName": "PolicySubmissions",
+      "ExpectedDataFile": "expected/policysubmissions-table-expected.json"
+    }
+  ],
+  "Cleanup": [
+    {
+      "Strategy": "Respawn",
+      "Parameters": "use_connection_string_from_config"
+    }
+  ]
+}

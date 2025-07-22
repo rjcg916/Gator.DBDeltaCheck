@@ -5,7 +5,7 @@ using Xunit;
 using Xunit.Sdk;
 using Xunit.v3;
 
-namespace DBDeltaCheck.Core.Attributes;
+namespace Gator.DBDeltaCheck.Core.Attributes;
 
 public class DatabaseStateTestAttribute : DataAttribute
 {

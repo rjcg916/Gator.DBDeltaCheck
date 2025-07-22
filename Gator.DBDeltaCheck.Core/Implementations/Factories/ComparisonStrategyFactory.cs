@@ -1,5 +1,5 @@
-﻿using DBDeltaCheck.Core.Abstractions;
-using DBDeltaCheck.Core.Abstractions.Factories;
+﻿using Gator.DBDeltaCheck.Core.Abstractions;
+using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 
 namespace DBDeltaCheck.Core.ComparisonStrategies;
 public class ComparisonStrategyFactory : IComparisonStrategyFactory

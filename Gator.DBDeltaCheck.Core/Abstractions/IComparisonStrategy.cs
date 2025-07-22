@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 
-namespace DBDeltaCheck.Core.Abstractions;
+namespace Gator.DBDeltaCheck.Core.Abstractions;
 
 public interface IComparisonStrategy
 {

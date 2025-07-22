@@ -1,4 +1,4 @@
-﻿namespace DBDeltaCheck.Core.Abstractions;
+﻿namespace Gator.DBDeltaCheck.Core.Abstractions;
 
 public enum DurableFunctionStatus { Completed, Failed, Terminated, Running, Pending }
 

@@ -1,0 +1,21 @@
+{
+  "RootTable": "Policies",
+  "Data": [
+    {
+      "PolicyNumber": "POL-001",
+      "EffectiveDate": "2025-08-01",
+      "InsuredName": "John Doe",
+      "PolicySubmissions": [
+        {
+          "SubmissionDate": "2025-07-20",
+          "Status": "Pending",
+          "State": {
+            "_lookupTable": "States",
+            "_lookupValueColumn": "StateCode",
+            "_lookupDisplayValue": "CA"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -20,10 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="TestCases\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Gator.DBDeltaCheck.Core\Gator.DBDeltaCheck.Core.csproj" />
   </ItemGroup>
 

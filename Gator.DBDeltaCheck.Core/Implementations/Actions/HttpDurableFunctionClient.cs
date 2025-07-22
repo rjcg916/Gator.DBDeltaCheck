@@ -1,4 +1,4 @@
-﻿using DBDeltaCheck.Core.Abstractions;
+﻿using Gator.DBDeltaCheck.Core.Abstractions;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Actions;
 public class HttpDurableFunctionClient : IDurableFunctionClient

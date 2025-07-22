@@ -1,113 +1,92 @@
 ﻿using Gator.DBDeltaCheck.Core.Abstractions;
-using Microsoft.EntityFrameworkCore;
-using System.Data;
-using System.Data.Common;
-using System.Text.Json;
+using Newtonsoft.Json.Linq;
 
-namespace DBDeltaCheck.Core.Implementations;
-
-
-public class EntityFrameworkRepository : IDatabaseRepository
+public class HierarchicalSeedingStrategy : ISetupStrategy
 {
-    private readonly DbContext _context;
+    private readonly IDbSchemaService _schemaService;
 
-    public EntityFrameworkRepository(DbContext context)
+    public HierarchicalSeedingStrategy(IDbSchemaService schemaService)
     {
-        _context = context;
+        _schemaService = schemaService;
     }
 
-    public Task<int> ExecuteAsync(string sql, object? param = null)
+    public async Task ExecuteAsync(IDatabaseRepository repository, JObject config)
     {
-        throw new NotImplementedException();
-    }
-
-    public Task<T> ExecuteScalarAsync<T>(string sql, T value)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>
-    /// Gets the underlying database connection.
-    /// </summary>
-    /// <returns>An IDbConnection instance.</returns>
-    public IDbConnection GetDbConnection()
-    {
-        
-        //     return _context.Database.GetDbConnection();
-    }
-
-    /// <summary>
-    /// Retrieves the state of a table asynchronously.
-    /// </summary>
-    /// <typeparam name="T">The entity type to map the table data to.</typeparam>
-    /// <param name="tableName">The name of the database table.</param>
-    /// <returns>An IEnumerable of the mapped entities.</returns>
-    public async Task<IEnumerable<T>> GetTableStateAsync<T>(string tableName) where T : class
-    {
-        // Note: Ensure the table name is not derived from user input to prevent SQL injection.
-      //  return await _context.Set<T>().FromSqlRaw($"SELECT * FROM {tableName}").ToListAsync();
-    }
-
-    public Task<IEnumerable<T>> QueryAsync<T>(string sql, object? param = null)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>
-    /// Seeds a table with data from a JSON string asynchronously.
-    /// </summary>
-    /// <param name="tableName">The name of the database table.</param>
-    /// <param name="jsonContent">The JSON string containing the data to be seeded.</param>
-    /// <remarks>
-    /// This method is a basic implementation and may need to be enhanced for complex scenarios,
-    /// such as handling different data types and relationships. It is also important
-    /// to ensure that the JSON property names match the table column names.
-    /// </remarks>
-    public async Task SeedTableAsync(string tableName, string jsonContent)
-    {
-        // Note: This implementation assumes the JSON represents an array of objects
-        // where keys correspond to column names. This approach is simplified and
-        // might be vulnerable to SQL injection if jsonContent is not from a trusted source.
-        // For production scenarios, consider a more robust deserialization and parameterization strategy.
-
-        var documents = JsonSerializer.Deserialize<JsonElement[]>(jsonContent);
-        DbConnection connection = null;// = _context.Database.GetDbConnection();
-        var hadToOpen = false;
-
-        if (connection.State == ConnectionState.Closed)
+        var instruction = config.ToObject<HierarchicalSeedInstruction>();
+        if (instruction == null)
         {
-            await connection.OpenAsync();
-            hadToOpen = true;
+            throw new InvalidOperationException("Invalid config for HierarchicalSeedingStrategy.");
         }
 
-        foreach (var doc in documents)
-        {
-            var columns = new List<string>();
-            var values = new List<string>();
-            var parameters = new List<DbParameter>();
+        // 1. Discover schema and determine insertion order via topological sort
+        var tableDependencies = _schemaService.GetTableDependencies();
+        var sortedTables = TopologicalSort(tableDependencies); // Custom implementation of topological sort
 
-            using (var command = connection.CreateCommand())
+        // 2. Process the data recursively
+        await ProcessNode(repository, instruction.RootTable, instruction.Data, instruction.Lookups, null);
+    }
+
+    public Task ExecuteAsync(IDatabaseOperations repository, JObject config)
+    {
+        throw new NotImplementedException();
+    }
+
+    private async Task ProcessNode(IDatabaseRepository repository, string tableName, JToken data,
+                                   List<LookupInstruction> lookups, Dictionary<string, object> parentKeys)
+    {
+        var records = data is JArray ? data.Children<JObject>() : new { (JObject)data };
+
+        foreach (var record in records)
+        {
+            // 3. Resolve lookups for the current record
+            foreach (var lookup in lookups.Where(l => record.ContainsKey(l.SourceField)))
             {
-                var i = 0;
-                foreach (var prop in doc.EnumerateObject())
-                {
-                    columns.Add(prop.Name);
-                    values.Add($"@p{i}");
-                    var parameter = command.CreateParameter();
-                    parameter.ParameterName = $"@p{i}";
-                    parameter.Value = prop.Value.ToString(); // Simplified; might need type conversion
-                    command.Parameters.Add(parameter);
-                    i++;
-                }
+                var lookupValue = record.ToString();
+                var foreignKey = await repository.GetLookupIdAsync(
+                    lookup.LookupTable,
+                    lookup.LookupColumn,
+                    lookupValue,
+                    lookup.LookupResultColumn);
 
-                command.CommandText = $"INSERT INTO {tableName} ({string.Join(", ", columns)}) VALUES ({string.Join(", ", values)})";
-                await command.ExecuteNonQueryAsync();
+                record.Remove(lookup.SourceField);
+                record.Add(lookup.TargetForeignKey, JToken.FromObject(foreignKey));
             }
-        }
 
-        if (hadToOpen)
-        {
-            await connection.CloseAsync();
+            // 4. Add parent foreign keys if applicable
+            if (parentKeys != null)
+            {
+                foreach (var key in parentKeys)
+                {
+                    record.Add(key.Key, JToken.FromObject(key.Value));
+                }
+            }
+
+            // 5. Separate child data from the current record's data
+            var childNodes = new Dictionary<string, JToken>();
+            var schemaRelations = _schemaService.GetChildTables(tableName);
+            foreach (var relation in schemaRelations)
+            {
+                if (record.TryGetValue(relation.ChildCollectionName, out var childData))
+                {
+                    childNodes.Add(relation.ChildTableName, childData);
+                    record.Remove(relation.ChildCollectionName);
+                }
+            }
+
+            // 6. Insert the current record and get its primary key
+            var primaryKey = await repository.InsertAndGetIdAsync(tableName, record.ToString());
+
+            // 7. Recursively process child nodes
+            foreach (var childNode in childNodes)
+            {
+                var childTableName = childNode.Key;
+                var childData = childNode.Value;
+                var newParentKeys = new Dictionary<string, object>
+                {
+                    { _schemaService.GetForeignKeyColumnName(childTableName, tableName), primaryKey }
+                };
+                await ProcessNode(repository, childTableName, childData, lookups, newParentKeys);
+            }
         }
     }
 }
