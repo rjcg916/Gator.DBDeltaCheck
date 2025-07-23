@@ -1,11 +1,20 @@
 ﻿using Gator.DBDeltaCheck.Core.Abstractions;
 using Newtonsoft.Json.Linq;
 
+
 namespace Gator.DBDeltaCheck.Core.Implementations.Comparisons;
-public class StrictEquivalenceStrategy : IComparisonStrategy
+
+public class StrictEquivalenceComparisonStrategy : IComparisonStrategy
 {
-    void IComparisonStrategy.AssertState(object actualState, object expectedState, JObject options)
+    public string StrategyName => "StrictEquivalence";
+
+    public bool Compare(string beforeStateJson, string afterStateJson, string expectedStateJson, object? parameters)
     {
-        throw new NotImplementedException();
+        // For strict equivalence, we normalize the JSON formatting and then do a string comparison.
+        // This is the most rigid check.
+        var afterToken = JToken.Parse(afterStateJson);
+        var expectedToken = JToken.Parse(expectedStateJson);
+
+        return JToken.DeepEquals(afterToken, expectedToken);
     }
 }

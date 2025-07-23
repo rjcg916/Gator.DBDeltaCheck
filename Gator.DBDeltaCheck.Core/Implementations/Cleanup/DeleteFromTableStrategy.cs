@@ -5,19 +5,16 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Cleanup;
 
 public class DeleteFromTableStrategy : ICleanupStrategy
 {
-    public string StrategyName => throw new NotImplementedException();
+    public string StrategyName => "DeleteFromTable";
 
     public async Task ExecuteAsync(IDatabaseRepository repository, JObject config)
     {
         var table = config["table"].Value<string>();
-        var whereClause = config["whereClause"]?.Value<string>(); // Optional where clause
+        var whereClause = config["whereClause"]?.Value<string>(); 
+        var sql = $"DELETE FROM {table}" + 
+                    (whereClause != null ? $" WHERE {whereClause}" : string.Empty);  
+        await repository.ExecuteAsync(sql);                
 
-                
-    //    await repository.DeleteFromTableAsync(table, whereClause);
     }
 
-    public Task ExecuteAsync(object parameters)
-    {
-        throw new NotImplementedException();
-    }
 }

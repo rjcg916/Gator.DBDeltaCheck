@@ -10,5 +10,4 @@ public interface IActionStrategy
     /// </summary>
     /// <param name="config">The JObject containing configuration specific to this action.</param>
     Task<bool> ExecuteAsync(JObject config);
-
 }

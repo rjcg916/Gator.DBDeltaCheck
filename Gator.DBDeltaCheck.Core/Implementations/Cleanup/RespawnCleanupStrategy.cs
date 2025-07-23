@@ -2,30 +2,27 @@
 using Microsoft.Data.SqlClient;
 using Newtonsoft.Json.Linq;
 using Respawn;
+using System.Data.Common;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Cleanup;
 public class RespawnCleanupStrategy : ICleanupStrategy
 {
-    private readonly Respawner _respawner;
+
     public string StrategyName => "Respawn";
+
+    private readonly Respawner _respawner;
 
     public RespawnCleanupStrategy(Respawner respawner)
     {
         _respawner = respawner;
     }
 
-    public async Task ExecuteAsync(object parameters)
+    public async Task ExecuteAsync(IDatabaseRepository repository, JObject config)
     {
-        // Parameters could include the connection string if not already configured
-        // but here we assume it's injected via DI.
-        var connectionString = parameters.ToString();
-        using var conn = new SqlConnection(connectionString);
-        await conn.OpenAsync();
-        await _respawner.ResetAsync(conn);
-    }
+        var conn = repository.GetDbConnection();
 
-    public Task ExecuteAsync(IDatabaseRepository repository, JObject config)
-    {
-        throw new NotImplementedException();
+        conn.Open();
+        await _respawner.ResetAsync((DbConnection) conn);
+      
     }
 }

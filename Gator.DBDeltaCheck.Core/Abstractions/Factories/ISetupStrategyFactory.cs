@@ -2,5 +2,5 @@
 
 public interface ISetupStrategyFactory
 {
-    ISetupStrategy GetStrategy(string setupType);
+    ISetupStrategy GetStrategy(string setupTypeName);
 }

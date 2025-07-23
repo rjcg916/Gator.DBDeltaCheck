@@ -1,4 +1,6 @@
-﻿using Gator.DBDeltaCheck.Core.Abstractions;
+﻿
+using DBDeltaCheck.Core.ComparisonStrategies;
+using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 using Gator.DBDeltaCheck.Core.Implementations;
 using Gator.DBDeltaCheck.Core.Implementations.Actions;

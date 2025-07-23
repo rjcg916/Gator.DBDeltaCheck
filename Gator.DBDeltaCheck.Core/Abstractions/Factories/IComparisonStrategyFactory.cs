@@ -1,5 +1,5 @@
 ﻿namespace Gator.DBDeltaCheck.Core.Abstractions.Factories;
 public interface IComparisonStrategyFactory
 {
-    public IComparisonStrategy GetStrategy(string name);
+    public IComparisonStrategy GetStrategy(string comparisonTypeName);
 }

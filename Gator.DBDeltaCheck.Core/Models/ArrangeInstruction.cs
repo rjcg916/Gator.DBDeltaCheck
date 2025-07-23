@@ -5,7 +5,7 @@ namespace Gator.DBDeltaCheck.Core.Models;
 /// <summary>
 /// A generic instruction for a single setup action.
 /// </summary>
-public class SetupActionInstruction
+public class ArrangeInstruction
 {
     /// <summary>
     /// The type of setup action. E.g., "SeedFromJson", "ExecuteSqlScript".

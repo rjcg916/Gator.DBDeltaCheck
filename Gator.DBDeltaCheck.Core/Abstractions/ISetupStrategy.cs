@@ -5,5 +5,6 @@ namespace Gator.DBDeltaCheck.Core.Abstractions;
 // Represents a setup action (e.g., seeding data)
 public interface ISetupStrategy
 {
-    Task ExecuteAsync(IDatabaseOperations repository, JObject config);
+    string StrategyName { get; }
+    Task ExecuteAsync(IDatabaseRepository repository, JObject config);
 }

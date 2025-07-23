@@ -27,5 +27,4 @@ public class DurableFunctionActionStrategy : IActionStrategy
         return finalStatus == DurableFunctionStatus.Completed;
     }
 
- 
 }
