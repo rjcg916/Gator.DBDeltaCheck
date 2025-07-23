@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\EcommerceDemo.Data\EcommerceDemo.Data.csproj" />
     <ProjectReference Include="..\Gator.DBDeltaCheck.Core\Gator.DBDeltaCheck.Core.csproj" />
   </ItemGroup>
 

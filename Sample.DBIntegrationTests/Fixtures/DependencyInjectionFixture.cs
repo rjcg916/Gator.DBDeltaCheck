@@ -1,5 +1,7 @@
-﻿
-using DBDeltaCheck.Core.ComparisonStrategies;
+﻿using DBDeltaCheck.Core.ComparisonStrategies;
+using DBDeltaCheck.Core.Implementations;
+using DBDeltaCheck.Core.Implementations.Comparisons;
+using ECommerceDemo.Data;
 using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 using Gator.DBDeltaCheck.Core.Implementations;
@@ -8,6 +10,7 @@ using Gator.DBDeltaCheck.Core.Implementations.Cleanup;
 using Gator.DBDeltaCheck.Core.Implementations.Comparisons;
 using Gator.DBDeltaCheck.Core.Implementations.Factories;
 using Gator.DBDeltaCheck.Core.Implementations.Seeding;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Respawn;
@@ -19,83 +22,97 @@ namespace Sample.DBIntegrationTests.Fixtures;
 
 public class DependencyInjectionFixture : TestBedFixture
 {
+
     protected override void AddServices(IServiceCollection services, IConfiguration? configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.AddTransient<HttpDurableFunctionClient>();
+
         RegisterFactories(services);
-        RegisterStrategies(services);
+        RegisterStrategies(services); // This method has the most important changes.
         RegisterApplicationServices(services, configuration);
     }
 
     private static void RegisterFactories(IServiceCollection services)
     {
         services.AddSingleton<IActionStrategyFactory, ActionStrategyFactory>();
-        services.AddSingleton<ISetupStrategyFactory, SetupStrategyFactory>();
         services.AddSingleton<ICleanupStrategyFactory, CleanupStrategyFactory>();
         services.AddSingleton<IComparisonStrategyFactory, ComparisonStrategyFactory>();
+        services.AddSingleton<ISetupStrategyFactory, SetupStrategyFactory>();
     }
 
     private static void RegisterStrategies(IServiceCollection services)
     {
-        services.AddTransient<DurableFunctionActionStrategy>();
-        services.AddTransient<ApiCallActionStrategy>();
 
-        services.AddTransient<JsonFileSeedingStrategy>();
 
-        services.AddTransient<DeleteFromTableStrategy>();
-        services.AddTransient<RespawnCleanupStrategy>();
+        // --- Action Strategies ---
+        services.AddTransient<IActionStrategy, ApiCallActionStrategy>();
+        services.AddTransient<IActionStrategy, DurableFunctionActionStrategy>();
+ 
+        // --- Cleanup Strategies ---
+        services.AddTransient<ICleanupStrategy, DeleteFromTableStrategy>();
+        services.AddTransient<ICleanupStrategy, RespawnCleanupStrategy>();
 
-        services.AddTransient<StrictEquivalenceStrategy>();
-        services.AddTransient<IgnoreColumnsStrategy>();
-        services.AddTransient<IgnoreOrderStrategy>();
+        // --- Comparison Strategies ---
+        services.AddTransient<IComparisonStrategy, IgnoreColumnsComparisonStrategy>();
+        services.AddTransient<IComparisonStrategy, IgnoreOrderComparisonStrategy>();
+        services.AddTransient<IComparisonStrategy, StrictEquivalenceComparisonStrategy>();
+
+        // --- Seeding (Setup) Strategies ---
+        services.AddTransient<ISetupStrategy, HierarchicalSeedingStrategy>();
+        services.AddTransient<ISetupStrategy, JsonFileSeedingStrategy>();
     }
 
     private static void RegisterApplicationServices(IServiceCollection services, IConfiguration configuration)
     {
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("ConnectionString 'DefaultConnection' not found.");
 
-        var connectionString = configuration.GetConnectionString("DefaultConnection");
-
-        // This ensures the schema service has access to the correct model.
-        services.AddDbContext<YourApplicationDbContext>(options =>
+  
+        services.AddDbContext<ECommerceDbContext>(options =>
             options.UseSqlServer(connectionString));
 
-        // 2. Register the IDbSchemaService as a singleton.
-        // The schema is immutable for a test run, so singleton is efficient.
-        services.AddSingleton<IDbSchemaService>(sp =>
-        {
-            // Resolve the DbContext that was just registered.
-            var dbContext = sp.GetRequiredService<YourApplicationDbContext>();
-            return new EfCoreSchemaService(dbContext);
-        });
 
-        services.AddSingleton<IDatabaseRepository>(new DapperDatabaseRepository());
+        services.AddScoped<DbContext>(sp => sp.GetRequiredService<ECommerceDbContext>());
 
+
+        services.AddSingleton<IDbSchemaService,  EFCachingDbSchemaService>();
+
+
+        services.AddSingleton<IDatabaseRepository>(new DapperDatabaseRepository(connectionString));
+
+        // This HttpClient registration is correct.
         services.AddHttpClient<HttpDurableFunctionClient>(client =>
         {
-            client.BaseAddress = new Uri(configuration.GetValue<string>("DurableFunctionBaseUrl", "").ToLower());
+            var baseUrl = configuration.GetValue<string>("DurableFunctionBaseUrl");
+            if (!string.IsNullOrEmpty(baseUrl))
+            {
+                client.BaseAddress = new Uri(baseUrl);
+            }
         });
 
-        services.AddSingleton((Func<IServiceProvider, Task<Respawner>>)(async sp =>
+
+        services.AddSingleton(async sp =>
         {
-
             var dbRepository = sp.GetRequiredService<IDatabaseRepository>();
-
+            // The connection is opened, used by Respawner.CreateAsync to build its internal model,
+            // and then disposed. 
             using var connection = dbRepository.GetDbConnection();
+            await connection.OpenAsync();
 
-            connection.Open();
-
-            var tablesToIgnoreFromConfig = configuration.GetSection("Respawn:TablesToIgnore").Get<string[]>() ?? Array.Empty<string>();
+            var tablesToIgnore = configuration.GetSection("Respawn:TablesToIgnore").Get<string[]>() ?? Array.Empty<string>();
 
             var respawner = await Respawner.CreateAsync((DbConnection)connection, new RespawnerOptions
             {
-                TablesToIgnore = tablesToIgnoreFromConfig.Select(t => new Respawn.Graph.Table(t)).ToArray(),
+                TablesToIgnore = tablesToIgnore.Select(t => new Respawn.Graph.Table(t)).ToArray(),
                 DbAdapter = DbAdapter.SqlServer
             });
 
             return respawner;
-        }));
+        });
     }
+
 
     protected override IEnumerable<TestAppSettings> GetTestAppSettings()
     {

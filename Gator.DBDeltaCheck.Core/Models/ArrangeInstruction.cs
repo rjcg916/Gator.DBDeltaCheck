@@ -7,15 +7,7 @@ namespace Gator.DBDeltaCheck.Core.Models;
 /// </summary>
 public class ArrangeInstruction
 {
-    /// <summary>
-    /// The type of setup action. E.g., "SeedFromJson", "ExecuteSqlScript".
-    /// </summary>
-    [JsonProperty("type")]
-    public string Type { get; set; }
+    public string Strategy { get; set; }
 
-    /// <summary>
-    /// Configuration specific to this setup action type.
-    /// </summary>
-    [JsonProperty("config")]
-    public JObject Config { get; set; }
+    public JObject Parameters { get; set; }
 }

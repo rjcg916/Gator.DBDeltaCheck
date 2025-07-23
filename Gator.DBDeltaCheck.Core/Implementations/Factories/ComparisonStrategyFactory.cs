@@ -1,16 +1,34 @@
 ﻿using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Abstractions.Factories;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DBDeltaCheck.Core.ComparisonStrategies;
+
 public class ComparisonStrategyFactory : IComparisonStrategyFactory
 {
-    public IComparisonStrategy GetStrategy(string name)
+    private readonly IServiceProvider _serviceProvider;
+
+    public ComparisonStrategyFactory(IServiceProvider serviceProvider)
     {
-        throw new NotImplementedException();
+        _serviceProvider = serviceProvider;
     }
 
-    IComparisonStrategy IComparisonStrategyFactory.GetStrategy(string name)
+    /// <summary>
+    /// Gets an instance of a comparison strategy based on its registered name.
+    /// </summary>
+    public IComparisonStrategy GetStrategy(string strategyName)
     {
-        throw new NotImplementedException();
+
+        var strategies = _serviceProvider.GetServices<IComparisonStrategy>();
+
+        var strategy = strategies.FirstOrDefault(s =>
+            s.StrategyName.Equals(strategyName, StringComparison.OrdinalIgnoreCase));
+
+        if (strategy == null)
+        {
+            throw new ArgumentException($"No comparison strategy with the name '{strategyName}' has been registered in the dependency injection container.");
+        }
+
+        return strategy;
     }
 }

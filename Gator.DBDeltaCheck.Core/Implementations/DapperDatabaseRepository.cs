@@ -2,6 +2,7 @@
 using Gator.DBDeltaCheck.Core.Abstractions;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Data.Common;
 using System.Text;
 
 
@@ -17,9 +18,9 @@ public class DapperDatabaseRepository : IDatabaseRepository
         _connectionString = connectionString;
     }
 
-    public IDbConnection GetDbConnection() => new SqlConnection(_connectionString);
+    public DbConnection GetDbConnection() => new SqlConnection(_connectionString);
 
-    public async Task<IEnumerable<T>> QueryAsync<T>(string sql, object? param = null)
+    public async Task<IEnumerable<T>> QueryAsync<T>(string sql, object? param = null) where T : class
     {
         using var connection = GetDbConnection();
         return await connection.QueryAsync<T>(sql, param);

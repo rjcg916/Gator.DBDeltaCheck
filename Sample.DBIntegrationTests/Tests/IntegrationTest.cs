@@ -1,24 +1,26 @@
-﻿using Gator.DBDeltaCheck.Core.Abstractions;
+﻿using FluentAssertions;
+using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 using Gator.DBDeltaCheck.Core.Attributes;
 using Gator.DBDeltaCheck.Core.Models;
 using Newtonsoft.Json;
 using Respawn;
 using Sample.DBIntegrationTests.Fixtures;
-using Xunit;
 using Xunit.Microsoft.DependencyInjection.Abstracts;
 
 namespace DB.IntegrationTests.Tests;
 
 public class IntegrationTest : TestBed<DependencyInjectionFixture>
 {
+    // Factories for creating strategies dynamically
     private readonly ISetupStrategyFactory _setupFactory;
-    private readonly IDatabaseRepository _dbRepository;
-    private readonly IDurableFunctionClient _durableFunctionClient;
     private readonly IActionStrategyFactory _actionFactory;
     private readonly IComparisonStrategyFactory _comparisonFactory;
     private readonly ICleanupStrategyFactory _cleanupFactory;
-    private readonly Respawner _respawner;
+
+    // Core services needed for test execution
+    private readonly IDatabaseRepository _dbRepository;
+    private readonly Task<Respawner> _respawnerTask; 
 
     public IntegrationTest(Xunit.ITestOutputHelper testOutputHelper, DependencyInjectionFixture fixture)
              : base(testOutputHelper, fixture)
@@ -26,7 +28,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
         // Resolve services from the fixture's ServiceProvider
         _setupFactory = _fixture.GetService<ISetupStrategyFactory>(testOutputHelper);
         _dbRepository = _fixture.GetService<IDatabaseRepository>(testOutputHelper);
-        _durableFunctionClient = _fixture.GetService<IDurableFunctionClient>(testOutputHelper);
+      //  _durableFunctionClient = _fixture.GetService<IDurableFunctionClient>(testOutputHelper);
         _actionFactory = _fixture.GetService<IActionStrategyFactory>(testOutputHelper);
         _comparisonFactory = _fixture.GetService<IComparisonStrategyFactory>(testOutputHelper);
         _cleanupFactory = _fixture.GetService<ICleanupStrategyFactory>(testOutputHelper);
@@ -37,69 +39,83 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
     [DatabaseStateTest("Path/To/Your/TestCases")]
     public async Task RunDatabaseStateTest(MasterTestDefinition testCase)
     {
-        // db cleanup
-        // 1. Reset the database to a pristine state using Respawn [6, 7]
-        //if (testCase.Arrange.DatabaseCleanup)
-        //{
-        //    await _respawner.ResetAsync(_dbRepository.GetDbConnection().ConnectionString);
-        //}
-
-        // =================================================================
-        // ARRANGE: Execute all setup actions defined in the JSON 
-        // =================================================================
-        foreach (var setupInstruction in testCase.Act.Actions)
-        {
-            var strategy = _setupFactory.GetStrategy(setupInstruction.Type);
-            await strategy.ExecuteAsync(_dbRepository, setupInstruction.Config);
-        }
-
- 
+        // A robust try/finally block ensures that cleanup ALWAYS runs,
+        // even if the test fails during the Act or Assert phase.
         try
         {
             // =================================================================
-            // ACT: Execute the primary action(s) of the test 
+            // INITIAL CLEANUP: Reset the database to a pristine state.
             // =================================================================
-            foreach (var actionInstruction in testCase.Act.Actions)
-            {
-                // Get the correct strategy from the factory based on the 'type' in JSON 
-                var actionStrategy = _actionFactory.GetStrategy(actionInstruction.Type);
+            var respawner = await _respawnerTask; 
+            await using var connection = _dbRepository.GetDbConnection();
+            await respawner.ResetAsync(connection);
 
-                // Execute the strategy, passing its specific configuration
-                await actionStrategy.ExecuteAsync(actionInstruction.Config);
+            // =================================================================
+            // ARRANGE: Execute all setup actions defined in the JSON.
+            // =================================================================
+
+            foreach (var setupInstruction in testCase.Arrange.Actions)
+            {
+                var strategy = _setupFactory.Create(setupInstruction.Strategy);
+                await strategy.ExecuteAsync(_dbRepository, setupInstruction.Parameters);
             }
 
             // =================================================================
-            // ASSERT: Verify the outcome is as expected
+            // ACT: Execute the primary action(s) of the test.
             // =================================================================
+            foreach (var actInstruction in testCase.Action.Actions)
+            {
+                var actionStrategy = _actionFactory.GetStrategy(actInstruction.Strategy);
+                await actionStrategy.ExecuteAsync(actInstruction.Parameters);
+            }
 
-            // Iterate through each assertion defined in the test case
+
+            // =================================================================
+            // ASSERT: Verify the outcome is as expected.
+            // =================================================================
             foreach (var assertion in testCase.Assert.ExpectedState)
             {
-                // Get the "after" state of the table from the database
-                var actualState = await _dbRepository.GetTableStateAsync<object>(assertion.Table);
+                // CHANGE: The assertion logic now aligns with our IComparisonStrategy design.
+                // 1. Get the actual state of the table AFTER the action.
+                var actualData = await _dbRepository.QueryAsync<object>(
+                    $"SELECT * FROM {assertion.Table}"
+                );
+                var actualStateJson = JsonConvert.SerializeObject(actualData);
 
-                // Load the expected state from the specified JSON file
-                var expectedStateJson = File.ReadAllText(Path.Combine("TestData", assertion.ExpectedDataFilePath));
-                var expectedState = JsonConvert.DeserializeObject<List<object>>(expectedStateJson);
+                // 2. Load the expected state from the specified JSON file.
+                // The path is resolved relative to the test definition file itself.
+                var testCaseDir = Path.GetDirectoryName(testCase.DefinitionFilePath);
+                var expectedDataPath = Path.Combine(testCaseDir, assertion.ExpectedDataFilePath);
+                var expectedStateJson = await File.ReadAllTextAsync(expectedDataPath);
 
-                // Use the factory to get the correct comparison strategy
-                var comparisonStrategy = _comparisonFactory.GetStrategy(assertion.ComparisonStrategy.Name);
+                // 3. Use the factory to get the correct comparison strategy.
+                var comparisonStrategy = _comparisonFactory.GetStrategy(assertion.ComparisonStrategy.Strategy);
 
-                // Execute the assertion using the chosen strategy
-                comparisonStrategy.AssertState(actualState, expectedState, assertion.ComparisonStrategy.Options);
+                // 4. Execute the comparison.
+                var areEqual = comparisonStrategy.Compare(
+                    null, // beforeStateJson - not used in this simple assertion
+                    actualStateJson,
+                    expectedStateJson,
+                    assertion.ComparisonStrategy.Parameters
+                );
+
+                // 5. Use FluentAssertions for a clear pass/fail message.
+                areEqual.Should().BeTrue(
+                    $"comparison failed for table '{assertion.Table}' using strategy '{assertion.ComparisonStrategy}'."
+                );
             }
         }
         finally
         {
             // =================================================================
-            // CLEANUP: Always execute teardown actions 
+            // FINAL CLEANUP: Optionally run specific teardown actions.
             // =================================================================
-            if (testCase.Teardown?.Actions != null)
+            if (testCase.Teardown != null)
             {
                 foreach (var cleanupInstruction in testCase.Teardown.Actions)
                 {
-                    var strategy = _cleanupFactory.GetStrategy(cleanupInstruction.Type);
-                    await strategy.ExecuteAsync(_dbRepository, cleanupInstruction.Config);
+                    var strategy = _cleanupFactory.Create(cleanupInstruction.Strategy);
+                    await strategy.ExecuteAsync(_dbRepository, cleanupInstruction.Parameters);
                 }
             }
         }

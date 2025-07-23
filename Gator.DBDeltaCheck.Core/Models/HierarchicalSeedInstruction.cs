@@ -16,12 +16,12 @@ public class HierarchicalSeedInstruction
     /// <summary>
     /// The JSON data for the root table. Can be an array of objects or a single object.
     /// </summary>
-    [JsonProperty("data")]
+
     public JToken Data { get; set; }
 
     /// <summary>
     /// A list of instructions for resolving foreign key values from lookup tables.
     /// </summary>
-    [JsonProperty("lookups")]
+
     public List<LookupInstruction> Lookups { get; set; } = new List<LookupInstruction>();
 }

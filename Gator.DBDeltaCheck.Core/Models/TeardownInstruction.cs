@@ -5,9 +5,7 @@ namespace Gator.DBDeltaCheck.Core.Models;
 
 public class TeardownInstruction
 {
-    [JsonProperty("type")]
-    public string Type { get; set; }
+    public string Strategy { get; set; }
 
-    [JsonProperty("config")]
-    public JObject Config { get; set; }
+    public JObject Parameters { get; set; }
 }

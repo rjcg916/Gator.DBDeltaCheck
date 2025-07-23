@@ -11,6 +11,9 @@ public class MasterTestDefinition
     [JsonProperty("testName")]
     public string TestName { get; set; }
 
+    [JsonIgnore]
+    public string DefinitionFilePath { get; set; }
+
     [JsonProperty("arrange")]
     public ArrangeDefinition Arrange { get; set; }
 

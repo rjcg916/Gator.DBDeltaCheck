@@ -5,10 +5,7 @@ namespace Gator.DBDeltaCheck.Core.Models;
 
 public class ActionInstruction
 {
+    public string Strategy { get; set; }
 
-    [JsonProperty("type")]
-    public string Type { get; set; }
-
-    [JsonProperty("config")]
-    public JObject Config { get; set; }
+    public JObject Parameters { get; set; }
 }

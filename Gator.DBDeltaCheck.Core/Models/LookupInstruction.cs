@@ -9,13 +9,13 @@ public class LookupInstruction
     /// <summary>
     /// The property in the JSON data that contains the lookup value (e.g., "CategoryName").
     /// </summary>
-    [JsonProperty("sourceField")]
+
     public string SourceField { get; set; }
 
     /// <summary>
     /// The foreign key property in the entity that needs to be populated (e.g., "CategoryId").
     /// </summary>
-    [JsonProperty("targetForeignKey")]
+
     public string TargetForeignKey { get; set; }
 
     /// <summary>
@@ -27,7 +27,7 @@ public class LookupInstruction
     /// <summary>
     /// The column in the lookup table to match against the sourceField value (e.g., "Name").
     /// </summary>
-    [JsonProperty("lookupColumn")]
+
     public string LookupColumn { get; set; }
 
     /// <summary>

@@ -6,6 +6,5 @@ namespace Gator.DBDeltaCheck.Core.Models;
 /// </summary>
 public class TeardownDefinition
 {
-    [JsonProperty("actions")]
     public List<TeardownInstruction> Actions { get; set; } = new List<TeardownInstruction>();
 }

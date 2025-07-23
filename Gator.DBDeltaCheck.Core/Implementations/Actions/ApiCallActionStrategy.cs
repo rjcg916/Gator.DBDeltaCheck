@@ -6,6 +6,8 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Actions;
 
 public class ApiCallActionStrategy : IActionStrategy
 {
+    public string StrategyName => "ApiCallActionStrategy";
+
     private readonly IHttpClientFactory _httpClientFactory;
 
     public ApiCallActionStrategy(IHttpClientFactory httpClientFactory)

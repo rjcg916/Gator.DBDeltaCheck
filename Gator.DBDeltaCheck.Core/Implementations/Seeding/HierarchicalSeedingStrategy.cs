@@ -101,7 +101,11 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
     /// <summary>
     /// Resolves lookups and adds parent foreign keys to create the final data dictionary for insertion.
     /// </summary>
-    private async Task<Dictionary<string, object>> PrepareRecordData(IDatabaseRepository repository, string tableName, Dictionary<string, JToken> recordData, Dictionary<string, object> parentKeys)
+    private async Task<Dictionary<string, object>> PrepareRecordData(
+        IDatabaseRepository repository,
+        string tableName,
+        Dictionary<string, JToken> recordData,
+        Dictionary<string, object> parentKeys)
     {
         var finalData = new Dictionary<string, object>();
 
@@ -113,11 +117,30 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
             {
                 var lookupTableName = lookupTableToken.Value<string>();
                 var valueColumn = lookupObject["_lookupValueColumn"].Value<string>();
-                var displayValue = lookupObject["_lookupDisplayValue"].Value<object>(); // Use object for flexibility
-                var targetForeignKey = await _schemaService.GetForeignKeyColumnNameAsync(tableName, lookupTableName);
+                var displayValue = lookupObject["_lookupDisplayValue"].ToObject<object>(); // Use ToObject for flexibility
 
-                var foreignKeyId = await repository.GetLookupIdAsync(lookupTableName, valueColumn, displayValue);
-                finalData[targetForeignKey] = foreignKeyId;
+                // --- THIS IS THE CORRECTED LOGIC ---
+
+                // 1. Ask the schema service for the name of the primary key on the lookup table.
+                var primaryKeyOfLookupTable = await _schemaService.GetPrimaryKeyColumnNameAsync(lookupTableName);
+
+                // 2. Construct a SQL query to get that primary key.
+                var sql = $"SELECT {primaryKeyOfLookupTable} FROM {lookupTableName} WHERE {valueColumn} = @displayValue";
+
+                // 3. Use the generic ExecuteScalarAsync to run the query and get the ID.
+                //    We use <object> because the ID could be an int, Guid, etc.
+                var foreignKeyId = await repository.ExecuteScalarAsync<object>(sql, new { displayValue });
+
+                if (foreignKeyId == null)
+                {
+                    throw new InvalidOperationException($"Lookup failed: Could not find a record in table '{lookupTableName}' where column '{valueColumn}' equals '{displayValue}'.");
+                }
+
+                // 4. Find the name of the foreign key column on the table we are currently inserting into.
+                var targetForeignKeyColumn = await _schemaService.GetForeignKeyColumnNameAsync(tableName, lookupTableName);
+
+                // 5. Add the resolved ID to our final data dictionary.
+                finalData[targetForeignKeyColumn] = foreignKeyId;
             }
             else
             {
@@ -134,4 +157,5 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
 
         return finalData;
     }
+
 }
