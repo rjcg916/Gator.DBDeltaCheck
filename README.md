@@ -19,11 +19,12 @@ This framework is built on a "strategy" pattern, allowing you to easily extend i
 
 ## How to Use This Framework
 
-This repository is structured into three projects to demonstrate how to use the framework effectively.
+This repository is structured into four projects to demonstrate how to use the framework effectively.
 
 1.  **`Gator.DBDeltaCheck.Core`**: The core framework library. You would typically package this as a NuGet package and reference it in your test projects.
-2.  **`ECommerceDemo.Data`**: A sample EF Core project representing the database you want to test.
-3.  **`Sample.DBIntegrationTests`**: The actual test project that consumes the core framework to test the `ECommerceDemo` database.
+2.  **`Sample.DBIntegrationTests`**: The actual test project that consumes the core framework to test the `ECommerceDemo` database.
+3.  **`ECommerceDemo.Api`**: A sample API for data access to underlying database operations. This API is used in the tests to perform actions like creating orders.
+4.  **`ECommerceDemo.Data`**: A sample EF Core project representing the database you want to test.
 
 ### Step 1: Set Up Your Test Project's Dependencies
 
