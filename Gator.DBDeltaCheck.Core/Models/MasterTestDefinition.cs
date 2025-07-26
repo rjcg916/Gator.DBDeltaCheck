@@ -7,7 +7,7 @@ public class MasterTestDefinition
     /// <summary>
     /// A descriptive name for the test case, used for logging and test runner output.
     /// </summary>
-    public string TestName { get; set; }
+    public string TestCaseName { get; set; }
 
     [JsonIgnore]
     public string DefinitionFilePath { get; set; }

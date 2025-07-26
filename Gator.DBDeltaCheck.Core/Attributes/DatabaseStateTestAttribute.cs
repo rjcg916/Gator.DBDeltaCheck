@@ -5,64 +5,79 @@ using Xunit;
 using Xunit.Sdk;
 using Xunit.v3;
 
-namespace Gator.DBDeltaCheck.Core.Attributes;
-
-public class DatabaseStateTestAttribute : DataAttribute
+namespace Gator.DBDeltaCheck.Core.Attributes
 {
-    private readonly string _filePath;
-
-    // Constructor accepts a path to a single file or a directory.
-    public DatabaseStateTestAttribute(string filePath)
+    /// <summary>
+    /// A custom XUnit v3 DataAttribute that discovers and loads test cases from .test.json files.
+    /// It provides a MasterTestDefinition object as a parameter to the test method for each file found.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
+    public class DatabaseStateTestAttribute : DataAttribute
     {
-        _filePath = filePath;
-    }
+        private readonly string _path;
 
-
-    public override ValueTask<IReadOnlyCollection<ITheoryDataRow>> GetData(MethodInfo testMethod, DisposalTracker disposalTracker)
-    {
-        if (string.IsNullOrEmpty(_filePath))
+        public DatabaseStateTestAttribute(string path)
         {
-            throw new ArgumentException("File path cannot be null or empty.", nameof(_filePath));
+            _path = path;
         }
 
-        var absolutePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, _filePath));
-        var testDefinitions = new List<ITheoryDataRow>();
-
-        if (File.GetAttributes(absolutePath).HasFlag(FileAttributes.Directory))
+        /// <summary>
+        /// Overrides the abstract method from DataAttribute to provide test data.
+        /// This is the main entry point for XUnit to get the theory data.
+        /// </summary>
+        public override ValueTask<IReadOnlyCollection<ITheoryDataRow>> GetData(
+            MethodInfo testMethod,
+            DisposalTracker disposalTracker)
         {
+            if (string.IsNullOrEmpty(_path))
+            {
+                throw new ArgumentException("A path to the test case directory must be provided.", nameof(_path));
+            }
+
+            var absolutePath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), _path));
+
+            if (!Directory.Exists(absolutePath))
+            {
+                throw new DirectoryNotFoundException($"Could not find the test case directory: {absolutePath}");
+            }
+
+            var testDefinitions = new List<ITheoryDataRow>();
             var files = Directory.GetFiles(absolutePath, "*.test.json", SearchOption.AllDirectories);
+
             foreach (var file in files)
             {
-                var testDef = LoadTestDefinition(file);
-                testDefinitions.Add(ConvertDataRow(new object[] { testDef }));
+                var testDefinition = LoadTestDefinition(file);
+
+                // Use the base class's helper method to convert our object[] into an ITheoryDataRow.
+                // This is the correct pattern for v3.
+                testDefinitions.Add(ConvertDataRow(new object[] { testDefinition }));
             }
+
+            // Wrap the result in a ValueTask for the async-first API.
+            return new ValueTask<IReadOnlyCollection<ITheoryDataRow>>(testDefinitions);
         }
-        else
+
+        /// <summary>
+        /// Overrides the abstract method to indicate that the test runner can enumerate
+        /// our test cases during the discovery phase. This allows individual test cases
+        /// (one per file) to appear in the Test Explorer.
+        /// </summary>
+        public override bool SupportsDiscoveryEnumeration() => true;
+
+        private MasterTestDefinition LoadTestDefinition(string filePath)
         {
-            var testDef = LoadTestDefinition(absolutePath);
-            testDefinitions.Add(ConvertDataRow(new object[] { testDef }));
+            var fileContent = File.ReadAllText(filePath);
+            var testDefinition = JsonConvert.DeserializeObject<MasterTestDefinition>(fileContent);
+
+            if (testDefinition == null)
+            {
+                throw new InvalidOperationException($"Failed to deserialize test definition from {filePath}.");
+            }
+
+            testDefinition.DefinitionFilePath = filePath;
+            testDefinition.TestCaseName ??= Path.GetFileNameWithoutExtension(filePath);
+
+            return testDefinition;
         }
-
-        return new ValueTask<IReadOnlyCollection<ITheoryDataRow>>(testDefinitions);
-    }
-
-
-
-    public override bool SupportsDiscoveryEnumeration()
-    {
-        throw new NotImplementedException();
-    }
-
-    private MasterTestDefinition LoadTestDefinition(string filePath)
-    {
-        var fileContent = File.ReadAllText(filePath);
-        var testDefinition = JsonConvert.DeserializeObject<MasterTestDefinition>(fileContent);
-        if (testDefinition == null)
-        {
-            throw new InvalidOperationException($"Failed to deserialize test definition from {filePath}.");
-        }
-        // Use the file name as the test name if not provided in the JSON
-        testDefinition.TestName ??= Path.GetFileNameWithoutExtension(filePath);
-        return testDefinition;
     }
 }

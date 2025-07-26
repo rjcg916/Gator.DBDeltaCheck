@@ -1,0 +1,26 @@
+{
+  "TestCaseName": "Add new customers using simple JSON seeding",
+  "Arrange": [
+    {
+      "Strategy": "JsonFileSeed",
+      "Parameters": {
+        "table": "Customers",
+        "dataFile": "data/new-customers.json"
+      }
+    }
+  ],
+  "Action": {
+    "Strategy": "ApiCall",
+    "Parameters": {
+      "Method": "DELETE",
+      "Endpoint": "/api/customers/2"
+    }
+  },
+  "Assert": [
+    {
+      "TableName": "Customers",
+      "ExpectedDataFile": "expected/one-customer-remains.json",
+      "ComparisonStrategy": "StrictEquivalence"
+    }
+  ]
+}

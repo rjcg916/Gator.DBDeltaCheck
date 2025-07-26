@@ -1,0 +1,52 @@
+@ECommerceDemo.Api_HostAddress = http://localhost:5010
+
+###
+# GET all customers
+# Returns an array of all customers in the database.
+GET {{ECommerceDemo.Api_HostAddress}}/api/customers/
+Accept: application/json
+
+###
+# GET a single customer by ID
+# Change the '1' to the ID of a customer you want to retrieve.
+GET {{ECommerceDemo.Api_HostAddress}}/api/customers/1
+Accept: application/json
+
+###
+# POST (create) a new customer
+# This request will add a new customer to the database.
+POST {{ECommerceDemo.Api_HostAddress}}/api/customers/
+Content-Type: application/json
+
+{
+  "firstName": "Alice",
+  "lastName": "Williams",
+  "email": "alice.w@example.com"
+}
+
+###
+# PUT (update) an existing customer
+# This request updates the customer with CustomerId = 1.
+PUT {{ECommerceDemo.Api_HostAddress}}/api/customers/1
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "firstName": "Jane",
+  "lastName": "Smith-Doe",
+  "email": "jane.smith.doe@example.com"
+}
+
+
+###
+# DELETE a customer by ID
+# Change the '1' to the ID of a customer you want to delete.
+DELETE {{ECommerceDemo.Api_HostAddress}}/api/customers/1
+Accept: application/json
+
+
+###
+# DELETE a customer by name (using query parameters)
+# This uses the custom endpoint we added.
+DELETE {{ECommerceDemo.Api_HostAddress}}/api/customers?firstName=Alice&lastName=Williams
+Accept: application/json
