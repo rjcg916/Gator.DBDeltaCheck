@@ -36,7 +36,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
     }
 
     [Theory]
-    [DatabaseStateTest("Path/To/Your/TestCases")]
+    [DatabaseStateTest("TestCases")]
     public async Task RunDatabaseStateTest(MasterTestDefinition testCase)
     {
         // A robust try/finally block ensures that cleanup ALWAYS runs,
@@ -54,7 +54,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // ARRANGE: Execute all setup actions defined in the JSON.
             // =================================================================
 
-            foreach (var setupInstruction in testCase.Arrange.Actions)
+            foreach (var setupInstruction in testCase.Arrangements)
             {
                 var strategy = _setupFactory.Create(setupInstruction.Strategy);
                 await strategy.ExecuteAsync(_dbRepository, setupInstruction.Parameters);
@@ -63,7 +63,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             // ACT: Execute the primary action(s) of the test.
             // =================================================================
-            foreach (var actInstruction in testCase.Action.Actions)
+            foreach (var actInstruction in testCase.Actions)
             {
                 var actionStrategy = _actionFactory.GetStrategy(actInstruction.Strategy);
                 await actionStrategy.ExecuteAsync(actInstruction.Parameters);
@@ -73,7 +73,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             // ASSERT: Verify the outcome is as expected.
             // =================================================================
-            foreach (var assertion in testCase.Assert.ExpectedState)
+            foreach (var assertion in testCase.Assertions)
             {
                 // CHANGE: The assertion logic now aligns with our IComparisonStrategy design.
                 // 1. Get the actual state of the table AFTER the action.
@@ -110,9 +110,9 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             // FINAL CLEANUP: Optionally run specific teardown actions.
             // =================================================================
-            if (testCase.Teardown != null)
+            if (testCase.Teardowns != null)
             {
-                foreach (var cleanupInstruction in testCase.Teardown.Actions)
+                foreach (var cleanupInstruction in testCase.Teardowns)
                 {
                     var strategy = _cleanupFactory.Create(cleanupInstruction.Strategy);
                     await strategy.ExecuteAsync(_dbRepository, cleanupInstruction.Parameters);

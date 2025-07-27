@@ -1,6 +1,6 @@
 {
   "TestCaseName": "Add new customers using simple JSON seeding",
-  "Arrange": [
+  "Arrangements": [
     {
       "Strategy": "JsonFileSeed",
       "Parameters": {
@@ -9,14 +9,16 @@
       }
     }
   ],
-  "Action": {
-    "Strategy": "ApiCall",
-    "Parameters": {
-      "Method": "DELETE",
-      "Endpoint": "/api/customers/2"
+  "Actions": [
+    {
+      "Strategy": "ApiCall",
+      "Parameters": {
+        "Method": "DELETE",
+        "Endpoint": "/api/customers?firstName=Peter&lastName=Jones"
+      }
     }
-  },
-  "Assert": [
+  ],
+  "Assertions": [
     {
       "TableName": "Customers",
       "ExpectedDataFile": "expected/one-customer-remains.json",

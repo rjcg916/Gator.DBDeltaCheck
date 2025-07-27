@@ -12,11 +12,11 @@ public class MasterTestDefinition
     [JsonIgnore]
     public string DefinitionFilePath { get; set; }
 
-    public ArrangeDefinition Arrange { get; set; }
+    public List<StepInstruction> Arrangements { get; set; }
 
-    public ActionDefinition Action { get; set; }
+    public List<StepInstruction> Actions { get; set; }
 
-    public AssertDefinition Assert { get; set; }
+    public List<ExpectedStateAssertion> Assertions { get; set; }
 
-    public TeardownDefinition Teardown { get; set; } 
+    public List<StepInstruction> Teardowns { get; set; } 
 }

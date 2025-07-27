@@ -1,8 +1,8 @@
-﻿[
-    {
-        "CustomerId": 1,
-        "FirstName": "Jane",
-        "LastName": "Smith",
-        "Email": "jane.smith@example.com"
-    }
+[
+  {
+    "CustomerId": 1,
+    "FirstName": "Jane",
+    "LastName": "Smith",
+    "Email": "jane.smith@example.com"
+  }
 ]
