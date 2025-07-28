@@ -1,6 +1,5 @@
 ﻿using FluentAssertions;
 using Gator.DBDeltaCheck.Core.Abstractions;
-using global::DBDeltaCheck.Core.Implementations.Comparisons;
 using Newtonsoft.Json;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Comparisons;

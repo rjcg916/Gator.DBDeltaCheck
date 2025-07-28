@@ -6,5 +6,5 @@ namespace Gator.DBDeltaCheck.Core.Abstractions;
 public interface ISetupStrategy
 {
     string StrategyName { get; }
-    Task ExecuteAsync(IDatabaseRepository repository, JObject parameters);
+    Task ExecuteAsync(JObject parameters);
 }

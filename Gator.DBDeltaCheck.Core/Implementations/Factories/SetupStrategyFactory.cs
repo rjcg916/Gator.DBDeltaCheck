@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Factories;
 
-
 public class SetupStrategyFactory : ISetupStrategyFactory
 {
     private readonly IServiceProvider _serviceProvider;

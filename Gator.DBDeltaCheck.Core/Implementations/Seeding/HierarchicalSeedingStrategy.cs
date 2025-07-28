@@ -1,161 +1,155 @@
 ﻿using Gator.DBDeltaCheck.Core.Abstractions;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Threading.Tasks;
 
-namespace Gator.DBDeltaCheck.Core.Implementations.Seeding;
-
-
-public class HierarchicalSeedingStrategy : ISetupStrategy
+namespace Gator.DBDeltaCheck.Core.Implementations.Seeding
 {
-    public string StrategyName => "HierarchicalSeed";
-
-    private readonly IDbSchemaService _schemaService;
-
-    public HierarchicalSeedingStrategy(IDbSchemaService schemaService)
+    public class HierarchicalSeedingStrategy : ISetupStrategy
     {
-        _schemaService = schemaService;
-    }
+        public string StrategyName => "HierarchicalSeed";
 
-    public async Task ExecuteAsync(IDatabaseRepository repository, JObject config)
-    {
-        var rootTable = config["rootTable"]?.Value<string>();
-        var data = config["data"];
+        // The strategy now holds all the tools it needs as private fields.
+        private readonly IDatabaseRepository _repository;
+        private readonly IDbSchemaService _schemaService;
 
-        if (data == null || string.IsNullOrWhiteSpace(rootTable))
+        /// <summary>
+        /// All dependencies are now injected via the constructor by the DI container.
+        /// </summary>
+        public HierarchicalSeedingStrategy(IDatabaseRepository repository, IDbSchemaService schemaService)
         {
-            throw new ArgumentException("Invalid config for HierarchicalSeedingStrategy. 'rootTable' and 'data' are required.");
+            _repository = repository;
+            _schemaService = schemaService;
         }
 
-        // Start the recursive process
-        await ProcessToken(repository, rootTable, data, new Dictionary<string, object>());
-    }
-
-    /// <summary>
-    /// Processes a JToken, handling whether it's a single object or an array of objects.
-    /// </summary>
-    private async Task ProcessToken(IDatabaseRepository repository, string tableName, JToken token, Dictionary<string, object> parentKeys)
-    {
-        if (token is JArray array)
+        /// <summary>
+        /// The ExecuteAsync method is now clean and only accepts the parameters from the JSON file.
+        /// </summary>
+        public async Task ExecuteAsync(JObject parameters)
         {
-            foreach (var record in array.Children<JObject>())
+            var rootTable = parameters["rootTable"]?.Value<string>();
+            var data = parameters["data"];
+
+            if (data == null || string.IsNullOrWhiteSpace(rootTable))
             {
-                await ProcessRecord(repository, tableName, record, parentKeys);
+                throw new ArgumentException("Invalid config for HierarchicalSeedingStrategy. 'rootTable' and 'data' are required.");
             }
-        }
-        else if (token is JObject record)
-        {
-            await ProcessRecord(repository, tableName, record, parentKeys);
-        }
-    }
 
-    /// <summary>
-    /// Processes a single JObject record, inserts it, and then recursively processes its children.
-    /// </summary>
-    private async Task ProcessRecord(IDatabaseRepository repository, string tableName, JObject record, Dictionary<string, object> parentKeys)
-    {
-        var recordData = record.ToObject<Dictionary<string, JToken>>()!;
+            // Start the recursive process using the injected dependencies.
+            await ProcessToken(rootTable, data, new Dictionary<string, object>());
+        }
 
-        // 1. First, separate child data from the current record's data.
-        var childNodes = new Dictionary<string, JToken>();
-        var schemaRelations = await _schemaService.GetChildTablesAsync(tableName);
-        foreach (var relation in schemaRelations)
+        /// <summary>
+        /// Processes a JToken, handling whether it's a single object or an array of objects.
+        /// </summary>
+        private async Task ProcessToken(string tableName, JToken token, Dictionary<string, object> parentKeys)
         {
-            if (recordData.TryGetValue(relation.ChildCollectionName, out var childData))
+            if (token is JArray array)
             {
-                childNodes.Add(relation.ChildTableName, childData);
-                recordData.Remove(relation.ChildCollectionName); // Remove from data to be inserted
-            }
-        }
-
-        // 2. Prepare the final data for insertion, resolving lookups and adding parent keys.
-        var finalRecordData = await PrepareRecordData(repository, tableName, recordData, parentKeys);
-
-  
-        // 3. Get all necessary primary key info from the schema service.
-        var primaryKeyName = await _schemaService.GetPrimaryKeyColumnNameAsync(tableName);
-        var primaryKeyType = await _schemaService.GetPrimaryKeyTypeAsync(tableName); // Get the Type
-
-        // 4. Use reflection to dynamically call the generic InsertRecordAndGetIdAsync<T> method.
-        var methodInfo = typeof(IDatabaseRepository).GetMethod(nameof(IDatabaseRepository.InsertRecordAndGetIdAsync));
-        var genericMethod = methodInfo.MakeGenericMethod(primaryKeyType);
-
-        // The result of Invoke is a Task, which we must await.
-        var task = (Task)genericMethod.Invoke(repository, new object[] { tableName, finalRecordData, primaryKeyName });
-        await task;
-
-        // The result of the awaited task is the primary key value.
-        var primaryKeyValue = ((dynamic)task).Result;
-        
-
-        // 5. Recursively process all child nodes, passing the new primary key down.
-        foreach (var childNode in childNodes)
-        {
-            var childTableName = childNode.Key;
-            var childData = childNode.Value;
-            var foreignKeyForParent = await _schemaService.GetForeignKeyColumnNameAsync(childTableName, tableName);
-
-            var newParentKeys = new Dictionary<string, object> { { foreignKeyForParent, primaryKeyValue } };
-            await ProcessToken(repository, childTableName, childData, newParentKeys);
-        }
-    }
-
-    /// <summary>
-    /// Resolves lookups and adds parent foreign keys to create the final data dictionary for insertion.
-    /// </summary>
-    private async Task<Dictionary<string, object>> PrepareRecordData(
-        IDatabaseRepository repository,
-        string tableName,
-        Dictionary<string, JToken> recordData,
-        Dictionary<string, object> parentKeys)
-    {
-        var finalData = new Dictionary<string, object>();
-
-        // Process each property in the JSON record
-        foreach (var property in recordData)
-        {
-            // Check for our special "_lookup" convention
-            if (property.Value is JObject lookupObject && lookupObject.TryGetValue("_lookupTable", out var lookupTableToken))
-            {
-                var lookupTableName = lookupTableToken.Value<string>();
-                var valueColumn = lookupObject["_lookupValueColumn"].Value<string>();
-                var displayValue = lookupObject["_lookupDisplayValue"].ToObject<object>(); // Use ToObject for flexibility
-
-                // --- THIS IS THE CORRECTED LOGIC ---
-
-                // 1. Ask the schema service for the name of the primary key on the lookup table.
-                var primaryKeyOfLookupTable = await _schemaService.GetPrimaryKeyColumnNameAsync(lookupTableName);
-
-                // 2. Construct a SQL query to get that primary key.
-                var sql = $"SELECT {primaryKeyOfLookupTable} FROM {lookupTableName} WHERE {valueColumn} = @displayValue";
-
-                // 3. Use the generic ExecuteScalarAsync to run the query and get the ID.
-                //    We use <object> because the ID could be an int, Guid, etc.
-                var foreignKeyId = await repository.ExecuteScalarAsync<object>(sql, new { displayValue });
-
-                if (foreignKeyId == null)
+                foreach (var record in array.Children<JObject>())
                 {
-                    throw new InvalidOperationException($"Lookup failed: Could not find a record in table '{lookupTableName}' where column '{valueColumn}' equals '{displayValue}'.");
+                    await ProcessRecord(tableName, record, parentKeys);
                 }
-
-                // 4. Find the name of the foreign key column on the table we are currently inserting into.
-                var targetForeignKeyColumn = await _schemaService.GetForeignKeyColumnNameAsync(tableName, lookupTableName);
-
-                // 5. Add the resolved ID to our final data dictionary.
-                finalData[targetForeignKeyColumn] = foreignKeyId;
             }
-            else
+            else if (token is JObject record)
             {
-                // It's a regular value, just add it
-                finalData[property.Key] = property.Value.ToObject<object>();
+                await ProcessRecord(tableName, record, parentKeys);
             }
         }
 
-        // Add foreign keys from the parent record
-        foreach (var parentKey in parentKeys)
+        /// <summary>
+        /// Processes a single JObject record, inserts it, and then recursively processes its children.
+        /// </summary>
+        private async Task ProcessRecord(string tableName, JObject record, Dictionary<string, object> parentKeys)
         {
-            finalData[parentKey.Key] = parentKey.Value;
+            var recordData = record.ToObject<Dictionary<string, JToken>>()!;
+
+            // 1. First, separate child data from the current record's data.
+            var childNodes = new Dictionary<string, JToken>();
+            var schemaRelations = await _schemaService.GetChildTablesAsync(tableName);
+            foreach (var relation in schemaRelations)
+            {
+                if (recordData.TryGetValue(relation.ChildCollectionName, out var childData))
+                {
+                    childNodes.Add(relation.ChildTableName, childData);
+                    recordData.Remove(relation.ChildCollectionName);
+                }
+            }
+
+            // 2. Prepare the final data for insertion, resolving lookups and adding parent keys.
+            var finalRecordData = await PrepareRecordData(tableName, recordData, parentKeys);
+
+            // 3. Get all necessary primary key info from the schema service.
+            var primaryKeyName = await _schemaService.GetPrimaryKeyColumnNameAsync(tableName);
+            var primaryKeyType = await _schemaService.GetPrimaryKeyTypeAsync(tableName);
+
+            // 4. Use reflection to dynamically call the generic InsertRecordAndGetIdAsync<T> method.
+            var methodInfo = typeof(IDatabaseRepository).GetMethod(nameof(IDatabaseRepository.InsertRecordAndGetIdAsync));
+            var genericMethod = methodInfo.MakeGenericMethod(primaryKeyType);
+
+            // The result of Invoke is a Task, which we must await.
+            var task = (Task)genericMethod.Invoke(_repository, new object[] { tableName, finalRecordData, primaryKeyName });
+            await task;
+
+            // The result of the awaited task is the primary key value.
+            var primaryKeyValue = ((dynamic)task).Result;
+
+            // 5. Recursively process all child nodes, passing the new primary key down.
+            foreach (var childNode in childNodes)
+            {
+                var childTableName = childNode.Key;
+                var childData = childNode.Value;
+                var foreignKeyForParent = await _schemaService.GetForeignKeyColumnNameAsync(childTableName, tableName);
+
+                var newParentKeys = new Dictionary<string, object> { { foreignKeyForParent, primaryKeyValue } };
+                await ProcessToken(childTableName, childData, newParentKeys);
+            }
         }
 
-        return finalData;
-    }
+        /// <summary>
+        /// Resolves lookups and adds parent foreign keys to create the final data dictionary for insertion.
+        /// </summary>
+        private async Task<Dictionary<string, object>> PrepareRecordData(
+            string tableName,
+            Dictionary<string, JToken> recordData,
+            Dictionary<string, object> parentKeys)
+        {
+            var finalData = new Dictionary<string, object>();
 
+            foreach (var property in recordData)
+            {
+                if (property.Value is JObject lookupObject && lookupObject.TryGetValue("_lookupTable", out var lookupTableToken))
+                {
+                    var lookupTableName = lookupTableToken.Value<string>();
+                    var valueColumn = lookupObject["_lookupValueColumn"].Value<string>();
+                    var displayValue = lookupObject["_lookupDisplayValue"].ToObject<object>();
+
+                    var primaryKeyOfLookupTable = await _schemaService.GetPrimaryKeyColumnNameAsync(lookupTableName);
+                    var sql = $"SELECT {primaryKeyOfLookupTable} FROM {lookupTableName} WHERE {valueColumn} = @displayValue";
+                    var foreignKeyId = await _repository.ExecuteScalarAsync<object>(sql, new { displayValue });
+
+                    if (foreignKeyId == null)
+                    {
+                        throw new InvalidOperationException($"Lookup failed: Could not find a record in table '{lookupTableName}' where column '{valueColumn}' equals '{displayValue}'.");
+                    }
+
+                    var targetForeignKeyColumn = await _schemaService.GetForeignKeyColumnNameAsync(tableName, lookupTableName);
+                    finalData[targetForeignKeyColumn] = foreignKeyId;
+                }
+                else
+                {
+                    finalData[property.Key] = property.Value.ToObject<object>();
+                }
+            }
+
+            foreach (var parentKey in parentKeys)
+            {
+                finalData[parentKey.Key] = parentKey.Value;
+            }
+
+            return finalData;
+        }
+    }
 }

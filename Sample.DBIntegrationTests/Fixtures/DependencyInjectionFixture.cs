@@ -1,9 +1,7 @@
-﻿using DBDeltaCheck.Core.ComparisonStrategies;
-using DBDeltaCheck.Core.Implementations;
-using DBDeltaCheck.Core.Implementations.Comparisons;
-using ECommerceDemo.Data;
+﻿using ECommerceDemo.Data;
 using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Abstractions.Factories;
+using Gator.DBDeltaCheck.Core.ComparisonStrategies;
 using Gator.DBDeltaCheck.Core.Implementations;
 using Gator.DBDeltaCheck.Core.Implementations.Actions;
 using Gator.DBDeltaCheck.Core.Implementations.Cleanup;
@@ -30,7 +28,7 @@ public class DependencyInjectionFixture : TestBedFixture
         services.AddTransient<HttpDurableFunctionClient>();
 
         RegisterFactories(services);
-        RegisterStrategies(services); // This method has the most important changes.
+        RegisterStrategies(services); 
         RegisterApplicationServices(services, configuration);
     }
 
@@ -44,7 +42,6 @@ public class DependencyInjectionFixture : TestBedFixture
 
     private static void RegisterStrategies(IServiceCollection services)
     {
-
 
         // --- Action Strategies ---
         services.AddTransient<IActionStrategy, ApiCallActionStrategy>();
@@ -69,16 +66,12 @@ public class DependencyInjectionFixture : TestBedFixture
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("ConnectionString 'DefaultConnection' not found.");
 
-  
         services.AddDbContext<ECommerceDbContext>(options =>
             options.UseSqlServer(connectionString));
 
-
         services.AddScoped<DbContext>(sp => sp.GetRequiredService<ECommerceDbContext>());
 
-
         services.AddSingleton<IDbSchemaService,  EFCachingDbSchemaService>();
-
 
         services.AddSingleton<IDatabaseRepository>(new DapperDatabaseRepository(connectionString));
 
@@ -92,7 +85,6 @@ public class DependencyInjectionFixture : TestBedFixture
             }
         });
 
-
         services.AddSingleton(async sp =>
         {
             var dbRepository = sp.GetRequiredService<IDatabaseRepository>();
@@ -103,7 +95,7 @@ public class DependencyInjectionFixture : TestBedFixture
 
             var tablesToIgnore = configuration.GetSection("Respawn:TablesToIgnore").Get<string[]>() ?? Array.Empty<string>();
 
-            var respawner = await Respawner.CreateAsync((DbConnection)connection, new RespawnerOptions
+            var respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
             {
                 TablesToIgnore = tablesToIgnore.Select(t => new Respawn.Graph.Table(t)).ToArray(),
                 DbAdapter = DbAdapter.SqlServer
@@ -112,7 +104,6 @@ public class DependencyInjectionFixture : TestBedFixture
             return respawner;
         });
     }
-
 
     protected override IEnumerable<TestAppSettings> GetTestAppSettings()
     {

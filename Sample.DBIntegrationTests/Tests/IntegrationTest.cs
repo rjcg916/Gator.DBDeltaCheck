@@ -27,12 +27,12 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
     {
         // Resolve services from the fixture's ServiceProvider
         _setupFactory = _fixture.GetService<ISetupStrategyFactory>(testOutputHelper);
-        _dbRepository = _fixture.GetService<IDatabaseRepository>(testOutputHelper);
-      //  _durableFunctionClient = _fixture.GetService<IDurableFunctionClient>(testOutputHelper);
         _actionFactory = _fixture.GetService<IActionStrategyFactory>(testOutputHelper);
         _comparisonFactory = _fixture.GetService<IComparisonStrategyFactory>(testOutputHelper);
         _cleanupFactory = _fixture.GetService<ICleanupStrategyFactory>(testOutputHelper);
 
+        _dbRepository = _fixture.GetService<IDatabaseRepository>(testOutputHelper);
+        _respawnerTask = _fixture.GetService<Task<Respawner>>(testOutputHelper);
     }
 
     [Theory]
@@ -57,7 +57,12 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             foreach (var setupInstruction in testCase.Arrangements)
             {
                 var strategy = _setupFactory.Create(setupInstruction.Strategy);
-                await strategy.ExecuteAsync(_dbRepository, setupInstruction.Parameters);
+      
+                // Add the base path to the parameters so the strategy can find relative files.
+                setupInstruction.Parameters["_basePath"] = Path.GetDirectoryName(testCase.DefinitionFilePath);
+
+                await strategy.ExecuteAsync(setupInstruction.Parameters);
+
             }
 
             // =================================================================
@@ -115,7 +120,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
                 foreach (var cleanupInstruction in testCase.Teardowns)
                 {
                     var strategy = _cleanupFactory.Create(cleanupInstruction.Strategy);
-                    await strategy.ExecuteAsync(_dbRepository, cleanupInstruction.Parameters);
+                    await strategy.ExecuteAsync(cleanupInstruction.Parameters);
                 }
             }
         }

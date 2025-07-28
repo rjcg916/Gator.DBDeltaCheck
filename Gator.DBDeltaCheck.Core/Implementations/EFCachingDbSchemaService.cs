@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using System.Collections.Concurrent;
 
-namespace DBDeltaCheck.Core.Implementations // Or your equivalent namespace
+namespace Gator.DBDeltaCheck.Core.Implementations // Or your equivalent namespace
 {
     /// <summary>
     /// Implements IDbSchemaService using Entity Framework Core's metadata model.

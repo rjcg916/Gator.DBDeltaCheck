@@ -7,5 +7,5 @@ public interface ICleanupStrategy
 {
     string StrategyName { get; }
 
-    Task ExecuteAsync(IDatabaseRepository repository, JObject config);
+    Task ExecuteAsync(JObject config);
 }

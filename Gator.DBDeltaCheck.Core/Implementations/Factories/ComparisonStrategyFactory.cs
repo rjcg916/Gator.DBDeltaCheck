@@ -2,7 +2,7 @@
 using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace DBDeltaCheck.Core.ComparisonStrategies;
+namespace Gator.DBDeltaCheck.Core.ComparisonStrategies;
 
 public class ComparisonStrategyFactory : IComparisonStrategyFactory
 {

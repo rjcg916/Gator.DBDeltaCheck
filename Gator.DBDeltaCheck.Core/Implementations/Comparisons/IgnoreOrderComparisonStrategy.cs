@@ -3,7 +3,7 @@ using Gator.DBDeltaCheck.Core.Abstractions;
 using Newtonsoft.Json;
 
 
-namespace DBDeltaCheck.Core.Implementations.Comparisons;
+namespace Gator.DBDeltaCheck.Core.Implementations.Comparisons;
 
 public class IgnoreOrderComparisonStrategy : IComparisonStrategy
 {
