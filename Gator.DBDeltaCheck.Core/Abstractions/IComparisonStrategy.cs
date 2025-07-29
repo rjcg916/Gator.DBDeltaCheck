@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 
 namespace Gator.DBDeltaCheck.Core.Abstractions;
 
-
 public interface IComparisonStrategy
 {
     string StrategyName { get; }

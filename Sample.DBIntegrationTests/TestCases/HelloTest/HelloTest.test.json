@@ -22,7 +22,10 @@
     {
       "TableName": "Customers",
       "ExpectedDataFile": "expected/one-customer-remains.json",
-      "ComparisonStrategy": "StrictEquivalence"
+      "ComparisonStrategy": "StrictEquivalence",
+      "ComparisionParameters": {
+
+      }
     }
   ]
 }

@@ -90,7 +90,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
                 // 2. Load the expected state from the specified JSON file.
                 // The path is resolved relative to the test definition file itself.
                 var testCaseDir = Path.GetDirectoryName(testCase.DefinitionFilePath);
-                var expectedDataPath = Path.Combine(testCaseDir, assertion.ExpectedDataFilePath);
+                var expectedDataPath = Path.Combine(testCaseDir, assertion.ExpectedDataFile);
                 var expectedStateJson = await File.ReadAllTextAsync(expectedDataPath);
 
                 // 3. Use the factory to get the correct comparison strategy.
