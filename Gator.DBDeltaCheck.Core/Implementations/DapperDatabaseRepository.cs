@@ -40,8 +40,19 @@ public class DapperDatabaseRepository : IDatabaseRepository
 
     public async Task<int> InsertRecordAsync(string tableName, object data)
     {
-        var properties = data.GetType().GetProperties().Select(p => p.Name);
-        var sql = $"INSERT INTO {tableName} ({string.Join(", ", properties)}) VALUES (@{string.Join(", @", properties)});";
+
+        var recordData = (IDictionary<string, object>)data;
+
+        var propertyNames = recordData.Keys;
+        if (!propertyNames.Any())
+        {
+            throw new ArgumentException("The data dictionary provided has no keys to insert.", nameof(data));
+        }
+
+        var columnNames = string.Join(", ", propertyNames);
+        var valueParameters = string.Join(", ", propertyNames.Select(p => "@" + p));
+
+        var sql = $"INSERT INTO {tableName} ({columnNames}) VALUES ({valueParameters});";
 
         using var connection = GetDbConnection();
         return await connection.ExecuteAsync(sql, data);
@@ -49,10 +60,20 @@ public class DapperDatabaseRepository : IDatabaseRepository
 
     public async Task<T> InsertRecordAndGetIdAsync<T>(string tableName, object data, string idColumnName)
     {
-        var properties = data.GetType().GetProperties().Select(p => p.Name);
-        var sql = new StringBuilder($"INSERT INTO {tableName} ({string.Join(", ", properties)}) ");
+        var recordData = (IDictionary<string, object>)data;
+
+        var propertyNames = recordData.Keys;
+        if (!propertyNames.Any())
+        {
+            throw new ArgumentException("The data dictionary provided has no keys to insert.", nameof(data));
+        }
+
+        var columnNames = string.Join(", ", propertyNames);
+        var valueParameters = string.Join(", ", propertyNames.Select(p => "@" + p));
+
+        var sql = new StringBuilder($"INSERT INTO {tableName} ({columnNames}) ");
         sql.Append($"OUTPUT INSERTED.{idColumnName} ");
-        sql.Append($"VALUES (@{string.Join(", @", properties)});");
+        sql.Append($"VALUES ({valueParameters});");
 
         using var connection = GetDbConnection();
         return await connection.QuerySingleAsync<T>(sql.ToString(), data);

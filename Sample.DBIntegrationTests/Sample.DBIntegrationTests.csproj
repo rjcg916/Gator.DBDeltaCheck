@@ -33,7 +33,7 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="TestCases\HelloTest\Data\new-customer-data.json">
+    <None Update="TestCases\HelloTest\Data\new-customers.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TestCases\HelloTest\Expected\one-customer-remains.json">

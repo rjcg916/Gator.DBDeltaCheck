@@ -4,7 +4,7 @@ using Newtonsoft.Json.Linq;
 namespace Gator.DBDeltaCheck.Core.Implementations.Actions;
 public class DurableFunctionActionStrategy : IActionStrategy
 {
-    public string StrategyName => "DurableFunctionActionStrategy";
+    public string StrategyName => "DurableFunction";
 
     private readonly IDurableFunctionClient _durableFunctionClient;
 

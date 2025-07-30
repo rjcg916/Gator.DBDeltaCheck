@@ -45,7 +45,7 @@ public class DependencyInjectionFixture : TestBedFixture
 
         // --- Action Strategies ---
         services.AddTransient<IActionStrategy, ApiCallActionStrategy>();
-        services.AddTransient<IActionStrategy, DurableFunctionActionStrategy>();
+      //  services.AddTransient<IActionStrategy, DurableFunctionActionStrategy>();
  
         // --- Cleanup Strategies ---
         services.AddTransient<ICleanupStrategy, DeleteFromTableStrategy>();
@@ -75,7 +75,20 @@ public class DependencyInjectionFixture : TestBedFixture
 
         services.AddSingleton<IDatabaseRepository>(new DapperDatabaseRepository(connectionString));
 
-        // This HttpClient registration is correct.
+
+        services.AddHttpClient();
+
+
+        services.AddHttpClient("TestClient", client =>
+        {
+            // This URL should be in your appsettings.json
+            var baseUrl = configuration.GetValue<string>("ApiBaseUrl");
+            if (!string.IsNullOrEmpty(baseUrl))
+            {
+                client.BaseAddress = new Uri(baseUrl);
+            }
+        });
+
         services.AddHttpClient<HttpDurableFunctionClient>(client =>
         {
             var baseUrl = configuration.GetValue<string>("DurableFunctionBaseUrl");

@@ -5,7 +5,7 @@
       "Strategy": "JsonFileSeed",
       "Parameters": {
         "table": "Customers",
-        "dataFile": "data/new-customers.json"
+        "dataFile": "data\\new-customers.json"
       }
     }
   ],
@@ -20,11 +20,12 @@
   ],
   "Assertions": [
     {
-      "TableName": "Customers",
-      "ExpectedDataFile": "expected/one-customer-remains.json",
-      "ComparisonStrategy": "StrictEquivalence",
-      "ComparisionParameters": {
-
+      "Table": "Customers",
+      "ExpectedDataFile": "expected\\one-customer-remains.json",
+      "ComparisonStrategy": {
+        "Strategy" : "StrictEquivalence",
+        "Parameters": {
+        }
       }
     }
   ]

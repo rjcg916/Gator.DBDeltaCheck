@@ -48,6 +48,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             var respawner = await _respawnerTask; 
             await using var connection = _dbRepository.GetDbConnection();
+            await connection.OpenAsync();
             await respawner.ResetAsync(connection);
 
             // =================================================================
