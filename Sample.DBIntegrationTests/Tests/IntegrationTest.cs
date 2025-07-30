@@ -84,7 +84,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
                 // CHANGE: The assertion logic now aligns with our IComparisonStrategy design.
                 // 1. Get the actual state of the table AFTER the action.
                 var actualData = await _dbRepository.QueryAsync<object>(
-                    $"SELECT * FROM {assertion.Table}"
+                    $"SELECT * FROM {assertion.TableName}"
                 );
                 var actualStateJson = JsonConvert.SerializeObject(actualData);
 
@@ -95,19 +95,19 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
                 var expectedStateJson = await File.ReadAllTextAsync(expectedDataPath);
 
                 // 3. Use the factory to get the correct comparison strategy.
-                var comparisonStrategy = _comparisonFactory.GetStrategy(assertion.ComparisonStrategy.Strategy);
+                var comparisonStrategy = _comparisonFactory.GetStrategy(assertion.ComparisonStrategy);
 
                 // 4. Execute the comparison.
                 var areEqual = comparisonStrategy.Compare(
                     null, // beforeStateJson - not used in this simple assertion
                     actualStateJson,
                     expectedStateJson,
-                    assertion.ComparisonStrategy.Parameters
+                    assertion.ComparisonParameters
                 );
 
                 // 5. Use FluentAssertions for a clear pass/fail message.
                 areEqual.Should().BeTrue(
-                    $"comparison failed for table '{assertion.Table}' using strategy '{assertion.ComparisonStrategy}'."
+                    $"comparison failed for table '{assertion.TableName}' using strategy '{assertion.ComparisonStrategy}'."
                 );
             }
         }

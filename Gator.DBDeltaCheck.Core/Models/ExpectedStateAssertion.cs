@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Gator.DBDeltaCheck.Core.Models;
 /// <summary>
@@ -6,21 +7,15 @@ namespace Gator.DBDeltaCheck.Core.Models;
 /// </summary>
 public class ExpectedStateAssertion
 {
-    /// <summary>
-    /// The name of the database table to validate.
-    /// </summary>
+    [JsonProperty("TableName")]
+    public string TableName { get; set; }
 
-    public string Table { get; set; }
-
-    /// <summary>
-    /// The relative path to a JSON file containing the expected final state of the table.
-    /// </summary>
-
+    [JsonProperty("ExpectedDataFile")]
     public string ExpectedDataFile { get; set; }
 
-    /// <summary>
-    /// Defines the comparison algorithm and options to use when comparing the actual and expected states.
-    /// </summary>
+    [JsonProperty("ComparisonStrategy")]
+    public string ComparisonStrategy { get; set; } = "IgnoreOrder";
 
-    public ComparisonStrategyDefinition ComparisonStrategy { get; set; }
+    [JsonProperty("ComparisonParameters")]
+    public JToken? ComparisonParameters { get; set; }
 }

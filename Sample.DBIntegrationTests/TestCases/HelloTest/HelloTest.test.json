@@ -20,13 +20,10 @@
   ],
   "Assertions": [
     {
-      "Table": "Customers",
+      "TableName": "Customers",
       "ExpectedDataFile": "expected\\one-customer-remains.json",
-      "ComparisonStrategy": {
-        "Strategy" : "StrictEquivalence",
-        "Parameters": {
-        }
-      }
+      "ComparisonStrategy": "IgnoreColumns",
+      "ComparisonParameters": [ "CustomerId" ]
     }
   ]
 }
