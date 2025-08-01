@@ -1,3 +1,5 @@
+
+using ECommerceDemo.API.DTOs;
 using ECommerceDemo.Data;
 using ECommerceDemo.Data.Data;
 using ECommerceDemo.Data.Entities;
@@ -101,7 +103,24 @@ var orderGroup = app.MapGroup("/api/orders");
 
 // Get all orders with customer details
 orderGroup.MapGet("/", async (ECommerceDbContext db) =>
-    await db.Orders.Include(o => o.Customer).ToListAsync());
+{
+    return await db.Orders
+        .Include(o => o.Customer)
+        .Select(o => new OrderDto // Project the entity to a DTO
+        {
+            OrderId = o.OrderId,
+            OrderDate = o.OrderDate,
+            TotalAmount = o.TotalAmount,
+            Customer = new CustomerDto // Project the nested entity too
+            {
+                CustomerId = o.Customer.CustomerId,
+                FirstName = o.Customer.FirstName,
+                LastName = o.Customer.LastName,
+                Email = o.Customer.Email
+            }
+        })
+        .ToListAsync();
+});
 
 // Get a single order with all details (customer and order items)
 orderGroup.MapGet("/{id}", async (int id, ECommerceDbContext db) =>

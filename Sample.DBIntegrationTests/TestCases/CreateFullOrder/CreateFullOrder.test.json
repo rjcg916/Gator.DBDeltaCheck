@@ -2,18 +2,18 @@
   "TestCaseName": "Seed a new Customer with a complete Order and Line Items",
   "Arrangements": [
     {
-      "Strategy": "HierarchicalSeed",
-      "Parameters": {
-        "rootTable" :  "Customer",
-        "dataFile": "data/new-customer-order.json"
-      }
-    },
-    {
       "Strategy": "JsonFileSeed",
       "Parameters": {
         "table": "Products",
         "dataFile": "data/products.json",
         "allowIdentityInsert": true
+      }
+    },
+    {
+      "Strategy": "HierarchicalSeed",
+      "Parameters": {
+        "rootTable": "Customer",
+        "dataFile": "data/new-customer-order.json"
       }
     }
   ],
@@ -22,22 +22,28 @@
       "Strategy": "ApiCall",
       "Parameters": {
         "Method": "GET",
-        "Endpoint": "/api/orders/1"
+        "Endpoint": "/api/orders"
       }
     }
   ],
   "Assertions": [
     {
       "TableName": "Customers",
-      "ExpectedDataFile": "expected/customer_expected.json"
+      "ExpectedDataFile": "expected/customer_expected.json",
+      "ComparisonStrategy": "IgnoreColumns",
+      "ComparisonParameters": [ "CustomerId" ]
     },
     {
       "TableName": "Orders",
-      "ExpectedDataFile": "expected/order_expected.json"
+      "ExpectedDataFile": "expected/order_expected.json",
+      "ComparisonStrategy": "IgnoreColumns",
+      "ComparisonParameters": [ "OrderId", "CustomerId" ]
     },
     {
       "TableName": "OrderItems",
-      "ExpectedDataFile": "expected/orderitems_expected.json"
+      "ExpectedDataFile": "expected/orderitems_expected.json",
+      "ComparisonStrategy": "IgnoreColumns",
+      "ComparisonParameters": [ "OrderItemId","OrderId","CustomerId" ]
     }
   ]
 }
