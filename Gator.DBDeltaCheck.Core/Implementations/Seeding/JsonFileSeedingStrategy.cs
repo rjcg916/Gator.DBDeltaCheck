@@ -5,54 +5,49 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Gator.DBDeltaCheck.Core.Implementations.Seeding
+namespace Gator.DBDeltaCheck.Core.Implementations.Seeding;
+
+
+public class JsonFileSeedingStrategy : ISetupStrategy
 {
-    public class JsonFileSeedingStrategy : ISetupStrategy
+    public string StrategyName => "JsonFileSeed";
+
+    private readonly IDatabaseRepository _repository;
+
+    public JsonFileSeedingStrategy(IDatabaseRepository repository)
     {
-        public string StrategyName => "JsonFileSeed";
+        _repository = repository;
+    }
 
-        // The repository is now a private field, provided by the constructor.
-        private readonly IDatabaseRepository _repository;
+    /// <summary>
+    /// Executes a simple data seed by inserting all records from a single JSON file into a single table.
+    /// </summary>
+    public async Task ExecuteAsync(JObject parameters)
+    {
+        var tableName = parameters["table"]?.Value<string>()
+            ?? throw new ArgumentException("The 'table' property is missing in the JsonFileSeed config.");
 
-        /// <summary>
-        /// The strategy's dependencies are injected via the constructor by the DI container.
-        /// </summary>
-        public JsonFileSeedingStrategy(IDatabaseRepository repository)
+        var dataFilePath = parameters["dataFile"]?.Value<string>()
+            ?? throw new ArgumentException("The 'dataFile' property is missing in the JsonFileSeed config.");
+
+        var allowIdentityInsert = parameters["allowIdentityInsert"]?.Value<bool>() ?? false;
+
+        var basePath = parameters["_basePath"]?.Value<string>() ?? Directory.GetCurrentDirectory();
+        var absoluteDataFilePath = Path.Combine(basePath, dataFilePath);
+
+        if (!File.Exists(absoluteDataFilePath))
         {
-            _repository = repository;
+            throw new FileNotFoundException($"The specified data file was not found: {absoluteDataFilePath}");
         }
 
-        /// <summary>
-        /// Executes a simple data seed by inserting all records from a single JSON file into a single table.
-        /// </summary>
-        public async Task ExecuteAsync(JObject parameters)
+        var seedContent = await File.ReadAllTextAsync(absoluteDataFilePath);
+
+        var records = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(seedContent);
+        if (records == null) return;
+
+        foreach (var record in records)
         {
-
-            var tableName = parameters["table"]?.Value<string>()
-                ?? throw new ArgumentException("The 'table' property is missing in the JsonFileSeed config.");
-
-            var dataFilePath = parameters["dataFile"]?.Value<string>()
-                ?? throw new ArgumentException("The 'dataFile' property is missing in the JsonFileSeed config.");
-
-            var allowIdentityInsert = parameters["allowIdentityInsert"]?.Value<bool>() ?? false;
-
-            var basePath = parameters["_basePath"]?.Value<string>() ?? Directory.GetCurrentDirectory();
-            var absoluteDataFilePath = Path.Combine(basePath, dataFilePath);
-
-            if (!File.Exists(absoluteDataFilePath))
-            {
-                throw new FileNotFoundException($"The specified data file was not found: {absoluteDataFilePath}");
-            }
-
-            var seedContent = await File.ReadAllTextAsync(absoluteDataFilePath);
-
-            var records = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(seedContent);
-            if (records == null) return;
-
-            foreach (var record in records)
-            {
-                await _repository.InsertRecordAsync(tableName, record, allowIdentityInsert);
-            }
+            await _repository.InsertRecordAsync(tableName, record, allowIdentityInsert);
         }
     }
 }

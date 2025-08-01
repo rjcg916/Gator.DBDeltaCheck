@@ -107,12 +107,14 @@ public class DependencyInjectionFixture : TestBedFixture
             using var connection = dbRepository.GetDbConnection();
             await connection.OpenAsync();
 
-            var tablesToIgnore = configuration.GetSection("Respawn:TablesToIgnore").Get<string[]>() ?? Array.Empty<string>();
+            var schemaName = configuration["Respawner:SchemaName"] ?? "dbo";
+            var tablesToIgnore = configuration.GetSection("Respawner:TablesToIgnore").Get<string[]>() ?? Array.Empty<string>();
 
             var respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
             {
                 TablesToIgnore = tablesToIgnore.Select(t => new Respawn.Graph.Table(t)).ToArray(),
-                DbAdapter = DbAdapter.SqlServer
+                DbAdapter = DbAdapter.SqlServer,
+                SchemasToInclude = new[] { schemaName }
             });
 
             return respawner;

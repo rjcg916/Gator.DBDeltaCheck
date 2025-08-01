@@ -5,7 +5,7 @@
       "Strategy": "HierarchicalSeed",
       "Parameters": {
         "rootTable" :  "Customer",
-        "data": "data/new-customer-order.json"
+        "dataFile": "data/new-customer-order.json"
       }
     },
     {

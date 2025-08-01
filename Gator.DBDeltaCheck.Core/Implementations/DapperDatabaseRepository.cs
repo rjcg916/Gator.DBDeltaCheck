@@ -80,15 +80,14 @@ public class DapperDatabaseRepository : IDatabaseRepository
         var columnNames = string.Join(", ", propertyNames);
         var valueParameters = string.Join(", ", propertyNames.Select(p => "@" + p));
 
-        var sqlBuilder = new StringBuilder();
-        
-       
+        var sqlBuilder = new StringBuilder();              
+
         if (allowIdentityInsert)
         {
             sqlBuilder.AppendLine($"SET IDENTITY_INSERT {tableName} ON;");
         }
-        sqlBuilder.AppendLine($"INSERT INTO {tableName} ({columnNames}) ");
 
+        sqlBuilder.AppendLine($"INSERT INTO {tableName} ({columnNames}) ");
         sqlBuilder.Append($"OUTPUT INSERTED.{idColumnName} ");
         sqlBuilder.Append($"VALUES ({valueParameters});");
 
