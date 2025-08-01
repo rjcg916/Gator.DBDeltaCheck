@@ -114,7 +114,8 @@ public class DependencyInjectionFixture : TestBedFixture
             {
                 TablesToIgnore = tablesToIgnore.Select(t => new Respawn.Graph.Table(t)).ToArray(),
                 DbAdapter = DbAdapter.SqlServer,
-                SchemasToInclude = new[] { schemaName }
+                SchemasToInclude = new[] { schemaName },
+                WithReseed = true,
             });
 
             return respawner;

@@ -30,20 +30,17 @@
     {
       "TableName": "Customers",
       "ExpectedDataFile": "expected/customer_expected.json",
-      "ComparisonStrategy": "IgnoreColumns",
-      "ComparisonParameters": [ "CustomerId" ]
+      "ComparisonStrategy": "IgnoreOrder"
     },
     {
       "TableName": "Orders",
       "ExpectedDataFile": "expected/order_expected.json",
-      "ComparisonStrategy": "IgnoreColumns",
-      "ComparisonParameters": [ "OrderId", "CustomerId" ]
+      "ComparisonStrategy": "IgnoreOrder"
     },
     {
       "TableName": "OrderItems",
       "ExpectedDataFile": "expected/orderitems_expected.json",
-      "ComparisonStrategy": "IgnoreColumns",
-      "ComparisonParameters": [ "OrderItemId","OrderId","CustomerId" ]
+      "ComparisonStrategy": "IgnoreOrder"
     }
   ]
 }
