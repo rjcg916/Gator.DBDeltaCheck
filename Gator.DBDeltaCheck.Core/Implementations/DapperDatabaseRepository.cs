@@ -38,7 +38,7 @@ public class DapperDatabaseRepository : IDatabaseRepository
         return await connection.ExecuteAsync(sql, param);
     }
 
-    public async Task<int> InsertRecordAsync(string tableName, object data)
+    public async Task<int> InsertRecordAsync(string tableName, object data, bool allowIdentityInsert = false)
     {
 
         var recordData = (IDictionary<string, object>)data;
@@ -52,13 +52,22 @@ public class DapperDatabaseRepository : IDatabaseRepository
         var columnNames = string.Join(", ", propertyNames);
         var valueParameters = string.Join(", ", propertyNames.Select(p => "@" + p));
 
-        var sql = $"INSERT INTO {tableName} ({columnNames}) VALUES ({valueParameters});";
+        var sqlBuilder = new StringBuilder();
+
+        if (allowIdentityInsert)
+        {
+            sqlBuilder.AppendLine($"SET IDENTITY_INSERT {tableName} ON; ");
+        }
+
+        sqlBuilder.AppendLine($"INSERT INTO {tableName} ({columnNames}) VALUES ({valueParameters});"); 
+
 
         using var connection = GetDbConnection();
-        return await connection.ExecuteAsync(sql, data);
+
+        return await connection.ExecuteAsync(sqlBuilder.ToString(), data);
     }
 
-    public async Task<T> InsertRecordAndGetIdAsync<T>(string tableName, object data, string idColumnName)
+    public async Task<T> InsertRecordAndGetIdAsync<T>(string tableName, object data, string idColumnName, bool allowIdentityInsert = false)
     {
         var recordData = (IDictionary<string, object>)data;
 
@@ -71,11 +80,19 @@ public class DapperDatabaseRepository : IDatabaseRepository
         var columnNames = string.Join(", ", propertyNames);
         var valueParameters = string.Join(", ", propertyNames.Select(p => "@" + p));
 
-        var sql = new StringBuilder($"INSERT INTO {tableName} ({columnNames}) ");
-        sql.Append($"OUTPUT INSERTED.{idColumnName} ");
-        sql.Append($"VALUES ({valueParameters});");
+        var sqlBuilder = new StringBuilder();
+        
+       
+        if (allowIdentityInsert)
+        {
+            sqlBuilder.AppendLine($"SET IDENTITY_INSERT {tableName} ON;");
+        }
+        sqlBuilder.AppendLine($"INSERT INTO {tableName} ({columnNames}) ");
+
+        sqlBuilder.Append($"OUTPUT INSERTED.{idColumnName} ");
+        sqlBuilder.Append($"VALUES ({valueParameters});");
 
         using var connection = GetDbConnection();
-        return await connection.QuerySingleAsync<T>(sql.ToString(), data);
+        return await connection.QuerySingleAsync<T>(sqlBuilder.ToString(), data);
     }
 }

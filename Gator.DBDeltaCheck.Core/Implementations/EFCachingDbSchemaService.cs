@@ -10,17 +10,17 @@ namespace Gator.DBDeltaCheck.Core.Implementations // Or your equivalent namespac
     /// This service is designed to be highly performant by caching schema information
     /// after the first discovery, avoiding repeated lookups during a test run.
     /// </summary>
-    public class EFCachingDbSchemaService : IDbSchemaService
+    public class EfCachingDbSchemaService : IDbSchemaService
     {
         private readonly DbContext _dbContext;
 
         // --- Caches to prevent re-calculating schema on every test run ---
-        private static readonly ConcurrentDictionary<string, string> _primaryKeyNameCache = new();
-        private static readonly ConcurrentDictionary<string, Type> _primaryKeyTypeCache = new();
-        private static readonly ConcurrentDictionary<string, IEnumerable<ChildTableInfo>> _childTableCache = new();
-        private static readonly ConcurrentDictionary<string, string> _foreignKeyCache = new();
+        private static readonly ConcurrentDictionary<string, string> PrimaryKeyNameCache = new();
+        private static readonly ConcurrentDictionary<string, Type> PrimaryKeyTypeCache = new();
+        private static readonly ConcurrentDictionary<string, IEnumerable<ChildTableInfo>> ChildTableCache = new();
+        private static readonly ConcurrentDictionary<string, string> ForeignKeyCache = new();
 
-        public EFCachingDbSchemaService(DbContext dbContext)
+        public EfCachingDbSchemaService(DbContext dbContext)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         }
@@ -30,7 +30,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations // Or your equivalent namespac
         /// </summary>
         public Task<string> GetPrimaryKeyColumnNameAsync(string tableName)
         {
-            if (_primaryKeyNameCache.TryGetValue(tableName, out var pkColumn))
+            if (PrimaryKeyNameCache.TryGetValue(tableName, out var pkColumn))
             {
                 return Task.FromResult(pkColumn);
             }
@@ -41,7 +41,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations // Or your equivalent namespac
 
             var storeObject = StoreObjectIdentifier.Table(tableName, entityType.GetSchema());
             var result = primaryKey.Properties[0].GetColumnName(storeObject);
-            _primaryKeyNameCache.TryAdd(tableName, result);
+            PrimaryKeyNameCache.TryAdd(tableName, result);
             return Task.FromResult(result);
         }
 
@@ -50,7 +50,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations // Or your equivalent namespac
         /// </summary>
         public Task<Type> GetPrimaryKeyTypeAsync(string tableName)
         {
-            if (_primaryKeyTypeCache.TryGetValue(tableName, out var pkType))
+            if (PrimaryKeyTypeCache.TryGetValue(tableName, out var pkType))
             {
                 return Task.FromResult(pkType);
             }
@@ -61,7 +61,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations // Or your equivalent namespac
 
             // The ClrType property gives us the underlying .NET type (e.g., typeof(int), typeof(Guid)).
             var result = primaryKey.Properties[0].ClrType;
-            _primaryKeyTypeCache.TryAdd(tableName, result);
+            PrimaryKeyTypeCache.TryAdd(tableName, result);
             return Task.FromResult(result);
         }
 
@@ -70,7 +70,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations // Or your equivalent namespac
         /// </summary>
         public Task<IEnumerable<ChildTableInfo>> GetChildTablesAsync(string parentTableName)
         {
-            if (_childTableCache.TryGetValue(parentTableName, out var childTables))
+            if (ChildTableCache.TryGetValue(parentTableName, out var childTables))
             {
                 return Task.FromResult(childTables);
             }
@@ -83,7 +83,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations // Or your equivalent namespac
                     n.Name // This is the collection property name from the C# class, e.g., "Orders"
                 )).ToList();
 
-            _childTableCache.TryAdd(parentTableName, navigations);
+            ChildTableCache.TryAdd(parentTableName, navigations);
             return Task.FromResult<IEnumerable<ChildTableInfo>>(navigations);
         }
 
@@ -93,7 +93,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations // Or your equivalent namespac
         public Task<string> GetForeignKeyColumnNameAsync(string childTableName, string parentTableName)
         {
             var cacheKey = $"{childTableName}:{parentTableName}";
-            if (_foreignKeyCache.TryGetValue(cacheKey, out var fkColumn))
+            if (ForeignKeyCache.TryGetValue(cacheKey, out var fkColumn))
             {
                 return Task.FromResult(fkColumn);
             }
@@ -107,7 +107,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations // Or your equivalent namespac
 
             // FINAL CORRECTION: Use the simple GetColumnName() extension method.
             var result = foreignKey.Properties[0].GetColumnName();
-            _foreignKeyCache.TryAdd(cacheKey, result);
+            ForeignKeyCache.TryAdd(cacheKey, result);
             return Task.FromResult(result);
         }
 

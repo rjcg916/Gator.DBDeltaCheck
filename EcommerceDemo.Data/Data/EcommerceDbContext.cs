@@ -1,7 +1,7 @@
 ﻿using ECommerceDemo.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace ECommerceDemo.Data;
+namespace ECommerceDemo.Data.Data;
 
 public class ECommerceDbContext : DbContext
 {

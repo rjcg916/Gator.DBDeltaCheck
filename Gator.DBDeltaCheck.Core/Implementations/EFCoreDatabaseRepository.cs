@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.Data.Common;
 using System.Reflection;
+using System.Text;
 
 namespace Gator.DBDeltaCheck.Core.Implementations 
 {
@@ -75,28 +76,87 @@ namespace Gator.DBDeltaCheck.Core.Implementations
             return await _dbContext.Database.ExecuteSqlRawAsync(sql, param ?? Array.Empty<object>());
         }
 
-        public async Task<int> InsertRecordAsync(string tableName, object data)
+        public async Task<int> InsertRecordAsync(string tableName, object data, bool allowIdentityInsert = false)
         {
-            var entity = CreateAndPopulateEntity(tableName, data);
-            _dbContext.Add(entity);
-            return await _dbContext.SaveChangesAsync();
+            if (!allowIdentityInsert)
+            {
+                var entity = CreateAndPopulateEntity(tableName, data);
+                _dbContext.Add(entity);
+                return await _dbContext.SaveChangesAsync();
+            }
+            else
+            {
+                // For identity insert, we must use raw SQL within a transaction.
+                await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+                try
+                {
+                    await _dbContext.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT {tableName} ON;");
+
+                    var recordData = (IDictionary<string, object>)data;
+                    var propertyNames = recordData.Keys;
+                    var columnNames = string.Join(", ", propertyNames);
+                    var valueParameters = string.Join(", ", propertyNames.Select(p => "@" + p));
+                    var sql = $"INSERT INTO {tableName} ({columnNames}) VALUES ({valueParameters});";
+
+                    var result = await ExecuteAsync(sql, data);
+
+                    await _dbContext.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT {tableName} OFF;");
+                    await transaction.CommitAsync();
+                    return result;
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
         }
 
-        public async Task<T> InsertRecordAndGetIdAsync<T>(string tableName, object data, string idColumnName)
+        public async Task<T> InsertRecordAndGetIdAsync<T>(string tableName, object data, string idColumnName, bool allowIdentityInsert = false)
         {
-            var entity = CreateAndPopulateEntity(tableName, data);
-            _dbContext.Add(entity);
-            await _dbContext.SaveChangesAsync();
-
-            // After SaveChanges, EF Core populates the original entity object with the ID.
-            var idProperty = entity.GetType().GetProperty(idColumnName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
-            if (idProperty == null)
+            if (!allowIdentityInsert)
             {
-                throw new ArgumentException($"Property '{idColumnName}' not found on entity for table '{tableName}'.");
-            }
+                var entity = CreateAndPopulateEntity(tableName, data);
+                _dbContext.Add(entity);
+                await _dbContext.SaveChangesAsync();
 
-            var idValue = idProperty.GetValue(entity);
-            return (T)Convert.ChangeType(idValue, typeof(T));
+                var idProperty = entity.GetType().GetProperty(idColumnName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+                if (idProperty == null)
+                {
+                    throw new ArgumentException($"Property '{idColumnName}' not found on entity for table '{tableName}'.");
+                }
+                var idValue = idProperty.GetValue(entity);
+                return (T)Convert.ChangeType(idValue, typeof(T));
+            }
+            else
+            {
+                // For identity insert, we must use raw SQL within a transaction.
+                await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+                try
+                {
+                    await _dbContext.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT {tableName} ON;");
+
+                    var recordData = (IDictionary<string, object>)data;
+                    var propertyNames = recordData.Keys;
+                    var columnNames = string.Join(", ", propertyNames);
+                    var valueParameters = string.Join(", ", propertyNames.Select(p => "@" + p));
+
+                    var sqlBuilder = new StringBuilder($"INSERT INTO {tableName} ({columnNames}) ");
+                    sqlBuilder.Append($"OUTPUT INSERTED.{idColumnName} ");
+                    sqlBuilder.Append($"VALUES ({valueParameters});");
+
+                    var result = await ExecuteScalarAsync<T>(sqlBuilder.ToString(), data);
+
+                    await _dbContext.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT {tableName} OFF;");
+                    await transaction.CommitAsync();
+                    return result;
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
         }
 
         /// <summary>

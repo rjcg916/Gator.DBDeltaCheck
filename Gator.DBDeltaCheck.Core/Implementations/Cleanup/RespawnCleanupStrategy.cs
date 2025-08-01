@@ -1,7 +1,6 @@
 ﻿using Gator.DBDeltaCheck.Core.Abstractions;
 using Newtonsoft.Json.Linq;
 using Respawn;
-using System.Threading.Tasks;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Cleanup
 {

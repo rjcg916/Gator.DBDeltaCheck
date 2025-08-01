@@ -1,4 +1,5 @@
 using ECommerceDemo.Data;
+using ECommerceDemo.Data.Data;
 using ECommerceDemo.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 

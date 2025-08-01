@@ -54,7 +54,6 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             // ARRANGE: Execute all setup actions defined in the JSON.
             // =================================================================
-
             foreach (var setupInstruction in testCase.Arrangements)
             {
                 var strategy = _setupFactory.Create(setupInstruction.Strategy);
@@ -81,7 +80,6 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             foreach (var assertion in testCase.Assertions)
             {
-                // CHANGE: The assertion logic now aligns with our IComparisonStrategy design.
                 // 1. Get the actual state of the table AFTER the action.
                 var actualData = await _dbRepository.QueryAsync<object>(
                     $"SELECT * FROM {assertion.TableName}"

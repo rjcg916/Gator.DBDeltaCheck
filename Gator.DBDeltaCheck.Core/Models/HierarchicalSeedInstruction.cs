@@ -23,5 +23,5 @@ public class HierarchicalSeedInstruction
     /// A list of instructions for resolving foreign key values from lookup tables.
     /// </summary>
 
-    public List<LookupInstruction> Lookups { get; set; } = new List<LookupInstruction>();
+    public List<LookupInstruction> Lookups { get; set; } = new();
 }

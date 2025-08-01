@@ -25,17 +25,17 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Seeding
         /// <summary>
         /// Executes a simple data seed by inserting all records from a single JSON file into a single table.
         /// </summary>
-        // The method signature is now clean and only accepts the parameters.
         public async Task ExecuteAsync(JObject parameters)
         {
-            // 1. Validate configuration and throw informative errors.
+
             var tableName = parameters["table"]?.Value<string>()
                 ?? throw new ArgumentException("The 'table' property is missing in the JsonFileSeed config.");
 
             var dataFilePath = parameters["dataFile"]?.Value<string>()
                 ?? throw new ArgumentException("The 'dataFile' property is missing in the JsonFileSeed config.");
 
-            // 2. Resolve the data file's path relative to the main test definition file.
+            var allowIdentityInsert = parameters["allowIdentityInsert"]?.Value<bool>() ?? false;
+
             var basePath = parameters["_basePath"]?.Value<string>() ?? Directory.GetCurrentDirectory();
             var absoluteDataFilePath = Path.Combine(basePath, dataFilePath);
 
@@ -46,14 +46,12 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Seeding
 
             var seedContent = await File.ReadAllTextAsync(absoluteDataFilePath);
 
-            // 3. Keep logic within the strategy; repository stays generic.
             var records = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(seedContent);
             if (records == null) return;
 
             foreach (var record in records)
             {
-                // Use the injected repository instance.
-                await _repository.InsertRecordAsync(tableName, record);
+                await _repository.InsertRecordAsync(tableName, record, allowIdentityInsert);
             }
         }
     }

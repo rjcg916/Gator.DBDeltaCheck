@@ -1,0 +1,43 @@
+{
+  "TestCaseName": "Seed a new Customer with a complete Order and Line Items",
+  "Arrangements": [
+    {
+      "Strategy": "HierarchicalSeed",
+      "Parameters": {
+        "rootTable" :  "Customer",
+        "data": "data/new-customer-order.json"
+      }
+    },
+    {
+      "Strategy": "JsonFileSeed",
+      "Parameters": {
+        "table": "Products",
+        "dataFile": "data/products.json",
+        "allowIdentityInsert": true
+      }
+    }
+  ],
+  "Actions": [
+    {
+      "Strategy": "ApiCall",
+      "Parameters": {
+        "Method": "GET",
+        "Endpoint": "/api/orders/1"
+      }
+    }
+  ],
+  "Assertions": [
+    {
+      "TableName": "Customers",
+      "ExpectedDataFile": "expected/customer_expected.json"
+    },
+    {
+      "TableName": "Orders",
+      "ExpectedDataFile": "expected/order_expected.json"
+    },
+    {
+      "TableName": "OrderItems",
+      "ExpectedDataFile": "expected/orderitems_expected.json"
+    }
+  ]
+}

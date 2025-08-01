@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Respawn;
 using System.Data.Common;
+using ECommerceDemo.Data.Data;
 using Xunit.Microsoft.DependencyInjection;
 using Xunit.Microsoft.DependencyInjection.Abstracts;
 
@@ -71,7 +72,7 @@ public class DependencyInjectionFixture : TestBedFixture
 
         services.AddScoped<DbContext>(sp => sp.GetRequiredService<ECommerceDbContext>());
 
-        services.AddSingleton<IDbSchemaService,  EFCachingDbSchemaService>();
+        services.AddSingleton<IDbSchemaService,  EfCachingDbSchemaService>();
 
         services.AddSingleton<IDatabaseRepository>(new DapperDatabaseRepository(connectionString));
 

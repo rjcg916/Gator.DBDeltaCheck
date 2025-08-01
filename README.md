@@ -58,69 +58,53 @@ This is where you define your test case. Create a folder structure for your test
 
 This JSON file tells the framework exactly what to do.
 
-**`CreateOrder.test.json` Example:**
+**`HelloTest.test.json` Example:**
 
 ```json
 {
-  "TestCaseName": "Happy Path: Successfully create a new Order",
-  "Arrange": [
+  "TestCaseName": "Add new customers using simple JSON seeding",
+  "Arrangements": [
     {
-      "Strategy": "HierarchicalSeed",
+      "Strategy": "JsonFileSeed",
       "Parameters": {
-        "rootTable": "Customers",
-        "data": [
-          {
-            "FirstName": "John",
-            "LastName": "Doe",
-            "Email": "john.doe@example.com"
-          }
-        ]
+        "table": "Customers",
+        "dataFile": "data\\new-customers.json"
       }
     }
   ],
-  "Act": {
-    "Strategy": "ApiCall",
-    "Parameters": {
-      "Endpoint": "/api/orders",
-      "Method": "POST",
-      "Payload": {
-        "CustomerId": 1,
-        "OrderDate": "2025-07-23T10:00:00Z",
-        "OrderItems": [
-          {
-            "ProductId": 101,
-            "Quantity": 2
-          }
-        ]
+  "Actions": [
+    {
+      "Strategy": "ApiCall",
+      "Parameters": {
+        "Method": "DELETE",
+        "Endpoint": "/api/customers?firstName=Peter&lastName=Jones"
       }
     }
-  },
-  "Assert": [
+  ],
+  "Assertions": [
     {
-      "TableName": "Orders",
-      "ExpectedDataFile": "expected/orders_expected.json",
+      "TableName": "Customers",
+      "ExpectedDataFile": "expected\\one-customer-remains.json",
       "ComparisonStrategy": "IgnoreColumns",
-      "ComparisonParameters": [ "OrderId", "TotalAmount" ]
-    },
-    {
-      "TableName": "OrderItems",
-      "ExpectedDataFile": "expected/order_items_expected.json"
+      "ComparisonParameters": [ "CustomerId" ]
     }
   ]
-}
+
 ```
 
 ### Step 3: Create Supporting Data Files
 
 Your test definition file will reference other files, like the expected results. Create these files in the same directory.
 
-**`expected/orders_expected.json` Example:**
+**`expected/one-customer-remains.json` Example:**
 
 ```json
 [
   {
     "CustomerId": 1,
-    "OrderStatusId": 1
+    "FirstName": "Jane",
+    "LastName": "Smith",
+    "Email": "jane.smith@example.com"
   }
 ]
 ```

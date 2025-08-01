@@ -15,7 +15,7 @@ public class IgnoreOrderComparisonStrategy : IComparisonStrategy
         var expectedList = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(expectedStateJson);
 
         // FluentAssertions' BeEquivalentTo handles collection comparisons irrespective of order by default.
-        // It checks that all items in one collection exist in the other, and vice-versa.
+        // It checks that all items in one collection exist in the other, and vice versa.
         try
         {
             afterList.Should().BeEquivalentTo(expectedList);

@@ -1,0 +1,16 @@
+[
+  {
+    "OrderItemId": 1,
+    "OrderId": 1,
+    "ProductId": 101,
+    "Quantity": 1,
+    "UnitPrice": 1249.99
+  },
+  {
+    "OrderItemId": 2,
+    "OrderId": 1,
+    "ProductId": 102,
+    "Quantity": 2,
+    "UnitPrice": 12.49
+  }
+]
