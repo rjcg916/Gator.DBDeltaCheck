@@ -52,6 +52,25 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
 
         // 4. Start the recursive process.
         await ProcessToken(rootTable, data, new Dictionary<string, object>(), allowIdentityInsert);
+
+        // 5. Process the "Outputs" section
+        if (parameters.TryGetValue("Outputs", out var outputsToken) && outputsToken is JArray outputsArray)
+        {
+            var outputInstructions = outputsArray.ToObject<List<OutputInstruction>>();
+            foreach (var instruction in outputInstructions)
+            {
+                var source = instruction.Source;
+                var sql = $"SELECT TOP 1 {source.SelectColumn} FROM {source.FromTable} ORDER BY {source.OrderByColumn} {source.OrderDirection ?? "DESC"}";
+
+                var outputValue = await _repository.ExecuteScalarAsync<object>(sql);
+
+                if (outputValue != null)
+                {
+                    // Write the captured value to the test context dictionary.
+                    testContext[instruction.VariableName] = outputValue;
+                }
+            }
+        }
     }
 
     private async Task ProcessToken(string tableName, JToken token, Dictionary<string, object> parentKeys, bool allowIdentityInsert)
@@ -149,4 +168,28 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
 
         return finalData;
     }
+}
+
+internal class OutputInstruction
+{
+    [JsonProperty("VariableName")]
+    public string VariableName { get; set; }
+
+    [JsonProperty("Source")]
+    public OutputSource Source { get; set; }
+}
+
+internal class OutputSource
+{
+    [JsonProperty("FromTable")]
+    public string FromTable { get; set; }
+
+    [JsonProperty("SelectColumn")]
+    public string SelectColumn { get; set; }
+
+    [JsonProperty("OrderByColumn")]
+    public string OrderByColumn { get; set; }
+
+    [JsonProperty("OrderDirection")]
+    public string? OrderDirection { get; set; }
 }

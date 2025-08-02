@@ -9,9 +9,10 @@
             {
               "VariableName": "newCustomerId",
               "Source": {
-                "TableName": "Customers",
+                "FromTable": "Customers",
                 "SelectColumn": "CustomerId",
-                "FromFirstRecord": true
+                "OrderByColumn": "CustomerId",
+                "OrderDirection": "DESC"
               }
             }
           ]
