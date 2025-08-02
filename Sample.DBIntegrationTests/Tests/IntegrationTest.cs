@@ -4,8 +4,10 @@ using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 using Gator.DBDeltaCheck.Core.Attributes;
 using Gator.DBDeltaCheck.Core.Models;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Respawn;
 using Sample.DBIntegrationTests.Fixtures;
+using System.Security.Cryptography;
 using Xunit.Microsoft.DependencyInjection.Abstracts;
 
 namespace DB.IntegrationTests.Tests;
@@ -39,6 +41,9 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
     [DatabaseStateTest("TestCases")]
     public async Task RunDatabaseStateTest(MasterTestDefinition testCase)
     {
+
+        var testContext = new Dictionary<string, object>();
+
         // A robust try/finally block ensures that cleanup ALWAYS runs,
         // even if the test fails during the Act or Assert phase.
         try
@@ -61,7 +66,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
                 // Add the base path to the parameters so the strategy can find relative files.
                 setupInstruction.Parameters["_basePath"] = Path.GetDirectoryName(testCase.DefinitionFilePath);
 
-                await strategy.ExecuteAsync(setupInstruction.Parameters);
+                await strategy.ExecuteAsync(setupInstruction.Parameters, testContext);
 
             }
 
@@ -70,6 +75,9 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             foreach (var actInstruction in testCase.Actions)
             {
+
+                ResolveTokens(actInstruction.Parameters, testContext);
+
                 var actionStrategy = _actionFactory.GetStrategy(actInstruction.Strategy);
                 await actionStrategy.ExecuteAsync(actInstruction.Parameters);
             }
@@ -120,6 +128,41 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
                 {
                     var strategy = _cleanupFactory.Create(cleanupInstruction.Strategy);
                     await strategy.ExecuteAsync(cleanupInstruction.Parameters);
+                }
+            }
+        }
+    }
+    /// <summary>
+    /// A helper method to recursively scan a JToken for string values
+    /// that match the token format "{key}" and replace them with values
+    /// from the test context.
+    /// </summary>
+    private void ResolveTokens(JToken token, Dictionary<string, object> context)
+    {
+        if (token is JObject obj)
+        {
+            foreach (var property in obj.Properties())
+            {
+                ResolveTokens(property.Value, context);
+            }
+        }
+        else if (token is JArray arr)
+        {
+            foreach (var item in arr)
+            {
+                ResolveTokens(item, context);
+            }
+        }
+        else if (token is JValue val && val.Type == JTokenType.String)
+        {
+            var stringValue = val.Value<string>();
+            if (stringValue.StartsWith("{") && stringValue.EndsWith("}"))
+            {
+                var key = stringValue.Trim('{', '}');
+                if (context.TryGetValue(key, out var resolvedValue))
+                {
+                    // Replace the token JValue with a new JValue of the correct type.
+                    val.Replace(JToken.FromObject(resolvedValue));
                 }
             }
         }

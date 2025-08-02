@@ -1,0 +1,41 @@
+{
+  "TestCaseName": "Add new customers using Hiearchical seeding",
+  "Arrangements": [
+      {
+        "Strategy": "HierarchicalSeed",
+        "Parameters": {
+          "dataFile": "data/new-customer-order.json",
+          "Outputs": [
+            {
+              "VariableName": "newCustomerId",
+              "Source": {
+                "TableName": "Customers",
+                "SelectColumn": "CustomerId",
+                "FromFirstRecord": true
+              }
+            }
+          ]
+        }
+      }    
+  ],
+  "Actions": [
+    {
+      "Strategy": "DurableFunction",
+      "Parameters": {
+        "OrchestratorName": "ProcessNewCustomerOrder",
+        "Payload": {
+          "CustomerId": "{newCustomerId}",
+          "ProductIds": [ 101, 102 ]
+        }
+      }
+    }
+  ],
+  "Assertions": [
+    {
+      "TableName": "Customers",
+      "ExpectedDataFile": "expected\\one-customer-remains.json",
+      "ComparisonStrategy": "IgnoreColumns",
+      "ComparisonParameters": [ "CustomerId" ]
+    }
+  ]
+}

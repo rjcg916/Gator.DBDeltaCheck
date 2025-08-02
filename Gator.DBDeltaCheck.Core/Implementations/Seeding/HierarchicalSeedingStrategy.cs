@@ -22,7 +22,7 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
         _schemaService = schemaService;
     }
 
-    public async Task ExecuteAsync(JObject parameters)
+    public async Task ExecuteAsync(JObject parameters, Dictionary<string, object> testContext)
     {
 
         // 1. Read configuration from the parameters.

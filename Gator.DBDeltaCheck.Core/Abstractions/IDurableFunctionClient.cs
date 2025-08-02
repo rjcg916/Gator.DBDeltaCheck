@@ -1,9 +1,13 @@
-﻿namespace Gator.DBDeltaCheck.Core.Abstractions;
+﻿using System.Threading.Tasks;
 
-public enum DurableFunctionStatus { Completed, Failed, Terminated, Running, Pending }
+namespace Gator.DBDeltaCheck.Core.Abstractions;
 
 public interface IDurableFunctionClient
 {
-    Task<string> StartOrchestrationAsync(string functionName, object payload);
-    Task<DurableFunctionStatus> WaitForOrchestrationCompletionAsync(string instanceId, TimeSpan timeout);
+    Task<OrchestrationStartResponse> StartDurableFunctionAsync(string orchestratorName, object payload);
+    Task<DurableFunctionStatus> MonitorDurableFunctionStatusAsync(string statusQueryGetUri, int timeoutSeconds, string expectedStatus);
 }
+
+
+public record OrchestrationStartResponse(string id, string statusQueryGetUri, string sendEventPostUri, string terminatePostUri, string purgeHistoryDeleteUri);
+public record DurableFunctionStatus(string name, string instanceId, string runtimeStatus, object input, object output, string createdTime, string lastUpdatedTime);

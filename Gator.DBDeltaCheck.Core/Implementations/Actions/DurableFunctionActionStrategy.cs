@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Actions;
+
 public class DurableFunctionActionStrategy : IActionStrategy
 {
     public string StrategyName => "DurableFunction";
@@ -13,20 +14,28 @@ public class DurableFunctionActionStrategy : IActionStrategy
         _durableFunctionClient = durableFunctionClient;
     }
 
-    public async Task<bool> ExecuteAsync(JObject config)
+    public async Task<bool> ExecuteAsync(JObject parameters)
     {
-        var functionName = config["functionName"].Value<string>();
-        var payload = config["payload"] as JObject;
-        var timeout = config["timeoutMinutes"]?.Value<int>() ?? 5;
+        // 1. Get configuration from the JSON parameters.
+        var orchestratorName = parameters["OrchestratorName"]?.Value<string>()
+            ?? throw new ArgumentException("'OrchestratorName' is missing from DurableFunction parameters.");
 
-        var instanceId = await _durableFunctionClient.StartOrchestrationAsync(functionName, payload);
+        var payload = parameters["Payload"]
+            ?? throw new ArgumentException("'Payload' is missing from DurableFunction parameters.");
 
-        var finalStatus = await _durableFunctionClient.WaitForOrchestrationCompletionAsync(
-            instanceId,
-            TimeSpan.FromMinutes(timeout));
+        var timeout = parameters["PollingTimeoutSeconds"]?.Value<int>() ?? 300; // Default to 5 minutes
+        var expectedStatus = parameters["ExpectedStatus"]?.Value<string>() ?? "Completed";
 
-        // Return true if the function completed successfully
-        return finalStatus == DurableFunctionStatus.Completed;
+        // 2. Start the durable function.
+        var startResponse = await _durableFunctionClient.StartDurableFunctionAsync(orchestratorName, payload);
+
+        // 3. Monitor the function until it completes.
+        // This will throw an exception on failure or timeout, which correctly fails the test.
+        await _durableFunctionClient.MonitorDurableFunctionStatusAsync(
+            startResponse.statusQueryGetUri,
+            timeout,
+            expectedStatus);
+
+        return true; // If we get here, the test step was successful.
     }
-
 }

@@ -11,10 +11,14 @@
   ],
   "Actions": [
     {
-      "Strategy": "ApiCall",
+      "Strategy": "DurableFunction",
       "Parameters": {
-        "Method": "DELETE",
-        "Endpoint": "/api/customers?firstName=Peter&lastName=Jones"
+        "OrchestratorName": "ProcessNewCustomerOrder",
+        "Payload": {
+          "CustomerId": "{newCustomerId}"
+        },
+        "PollingTimeoutSeconds": 120,
+        "ExpectedStatus": "Completed"
       }
     }
   ],

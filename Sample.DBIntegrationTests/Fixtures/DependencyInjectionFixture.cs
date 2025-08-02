@@ -1,4 +1,4 @@
-﻿using ECommerceDemo.Data;
+﻿using ECommerceDemo.Data.Data;
 using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 using Gator.DBDeltaCheck.Core.ComparisonStrategies;
@@ -12,8 +12,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Respawn;
-using System.Data.Common;
-using ECommerceDemo.Data.Data;
 using Xunit.Microsoft.DependencyInjection;
 using Xunit.Microsoft.DependencyInjection.Abstracts;
 
@@ -25,8 +23,6 @@ public class DependencyInjectionFixture : TestBedFixture
     protected override void AddServices(IServiceCollection services, IConfiguration? configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
-
-        services.AddTransient<HttpDurableFunctionClient>();
 
         RegisterFactories(services);
         RegisterStrategies(services); 
@@ -46,8 +42,8 @@ public class DependencyInjectionFixture : TestBedFixture
 
         // --- Action Strategies ---
         services.AddTransient<IActionStrategy, ApiCallActionStrategy>();
-      //  services.AddTransient<IActionStrategy, DurableFunctionActionStrategy>();
- 
+        services.AddTransient<IActionStrategy, DurableFunctionActionStrategy>();
+
         // --- Cleanup Strategies ---
         services.AddTransient<ICleanupStrategy, DeleteFromTableStrategy>();
         services.AddTransient<ICleanupStrategy, RespawnCleanupStrategy>();
@@ -90,14 +86,16 @@ public class DependencyInjectionFixture : TestBedFixture
             }
         });
 
-        services.AddHttpClient<HttpDurableFunctionClient>(client =>
+        services.AddHttpClient<IDurableFunctionClient, DurableFunctionClient>(client =>
         {
+            // This URL should be in your appsettings.json
             var baseUrl = configuration.GetValue<string>("DurableFunctionBaseUrl");
             if (!string.IsNullOrEmpty(baseUrl))
             {
                 client.BaseAddress = new Uri(baseUrl);
             }
         });
+
 
         services.AddSingleton(async sp =>
         {
@@ -126,6 +124,5 @@ public class DependencyInjectionFixture : TestBedFixture
     {
         yield return new() { Filename = "appsettings.json", IsOptional = false };
     }
-
     protected override ValueTask DisposeAsyncCore() => new();
 }

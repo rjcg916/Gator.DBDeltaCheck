@@ -22,7 +22,7 @@ public class JsonFileSeedingStrategy : ISetupStrategy
     /// <summary>
     /// Executes a simple data seed by inserting all records from a single JSON file into a single table.
     /// </summary>
-    public async Task ExecuteAsync(JObject parameters)
+    public async Task ExecuteAsync(JObject parameters, Dictionary<string, object> testContext)
     {
         var tableName = parameters["table"]?.Value<string>()
             ?? throw new ArgumentException("The 'table' property is missing in the JsonFileSeed config.");

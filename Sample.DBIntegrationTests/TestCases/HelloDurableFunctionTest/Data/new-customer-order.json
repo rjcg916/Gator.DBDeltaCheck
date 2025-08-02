@@ -1,0 +1,41 @@
+{
+  "rootTable": "Customers",
+  "data": [
+    {
+      "FirstName": "Alice",
+      "LastName": "Williams",
+      "Email": "alice.williams@example.com",
+      "Orders": [
+        {
+          "OrderDate": "2025-07-31T10:00:00Z",
+          "TotalAmount": 1274.98,
+          "OrderStatus": {
+            "_lookupTable": "OrderStatuses",
+            "_lookupValueColumn": "StatusName",
+            "_lookupDisplayValue": "Processing"
+          },
+          "OrderItems": [
+            {
+              "Quantity": 1,
+              "UnitPrice": 1249.99,
+              "Product": {
+                "_lookupTable": "Products",
+                "_lookupValueColumn": "Name",
+                "_lookupDisplayValue": "Laptop"
+              }
+            },
+            {
+              "Quantity": 2,
+              "UnitPrice": 12.49,
+              "Product": {
+                "_lookupTable": "Products",
+                "_lookupValueColumn": "Name",
+                "_lookupDisplayValue": "Mouse"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
