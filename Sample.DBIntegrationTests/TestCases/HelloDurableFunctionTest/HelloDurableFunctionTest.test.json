@@ -22,11 +22,13 @@
     {
       "Strategy": "DurableFunction",
       "Parameters": {
-        "OrchestratorName": "ProcessNewCustomerOrder",
+        "OrchestratorName": "RunOrchestrator",
         "Payload": {
           "CustomerId": "{newCustomerId}",
-          "ProductIds": [ 101, 102 ]
-        }
+          "NewEmail": "alice.williams.processed@example.com"
+        },
+        "PollingTimeoutSeconds": 120,
+        "ExpectedStatus": "Completed"
       }
     }
   ],
