@@ -33,9 +33,6 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="TestCases\CreateFullOrder\CreateFullOrder.test.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="TestCases\CreateFullOrder\Data\new-customer-order.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -54,6 +51,12 @@
     <None Update="TestCases\HelloDurableFunctionTest\Data\new-customer-order.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="TestCases\HelloDurableFunctionTest\Data\products.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestCases\HelloDurableFunctionTest\Expected\customer-email-changed.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="TestCases\HelloTest\Data\new-customers.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -63,13 +66,6 @@
     <None Update="TestCases\HelloDurableFunctionTest\HelloDurableFunctionTest.test.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="TestCases\HelloTest\HelloTest.test.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="TestCases\HelloDurableFunctionTest\Expected\" />
   </ItemGroup>
 
 </Project>

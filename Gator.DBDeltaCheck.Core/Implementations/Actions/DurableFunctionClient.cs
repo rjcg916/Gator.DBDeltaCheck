@@ -1,6 +1,7 @@
 ﻿using Gator.DBDeltaCheck.Core.Abstractions;
 using System.Net.Http;
-using System.Net.Http.Json; // For modern JSON handling
+using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -10,16 +11,16 @@ public class DurableFunctionClient : IDurableFunctionClient
 {
     private readonly HttpClient _httpClient;
 
-
     public DurableFunctionClient(HttpClient httpClient)
     {
         _httpClient = httpClient;
     }
 
-    public async Task<OrchestrationStartResponse> StartDurableFunctionAsync(string orchestratorName, object payload)
+    public async Task<OrchestrationStartResponse> StartDurableFunctionAsync(string orchestratorName, string payloadJson)
     {
-        
-        var response = await _httpClient.PostAsJsonAsync($"orchestrators/{orchestratorName}", payload);
+        var content = new StringContent(payloadJson, Encoding.UTF8, "application/json");
+        var response = await _httpClient.PostAsync($"orchestrators/{orchestratorName}", content);
+ 
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<OrchestrationStartResponse>();
     }

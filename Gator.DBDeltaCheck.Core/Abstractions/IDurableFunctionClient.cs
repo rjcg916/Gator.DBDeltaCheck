@@ -4,7 +4,7 @@ namespace Gator.DBDeltaCheck.Core.Abstractions;
 
 public interface IDurableFunctionClient
 {
-    Task<OrchestrationStartResponse> StartDurableFunctionAsync(string orchestratorName, object payload);
+    Task<OrchestrationStartResponse> StartDurableFunctionAsync(string orchestratorName, string payloadJson);
     Task<DurableFunctionStatus> MonitorDurableFunctionStatusAsync(string statusQueryGetUri, int timeoutSeconds, string expectedStatus);
 }
 

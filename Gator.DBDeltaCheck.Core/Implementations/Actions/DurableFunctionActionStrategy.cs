@@ -20,8 +20,9 @@ public class DurableFunctionActionStrategy : IActionStrategy
         var orchestratorName = parameters["OrchestratorName"]?.Value<string>()
             ?? throw new ArgumentException("'OrchestratorName' is missing from DurableFunction parameters.");
 
-        var payload = parameters["Payload"]
+        var payloadToken = parameters["Payload"]
             ?? throw new ArgumentException("'Payload' is missing from DurableFunction parameters.");
+        var payload = payloadToken.ToString();
 
         var timeout = parameters["PollingTimeoutSeconds"]?.Value<int>() ?? 300; // Default to 5 minutes
         var expectedStatus = parameters["ExpectedStatus"]?.Value<string>() ?? "Completed";

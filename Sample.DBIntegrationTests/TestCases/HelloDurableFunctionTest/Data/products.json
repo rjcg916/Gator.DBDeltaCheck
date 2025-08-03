@@ -1,0 +1,14 @@
+[
+  {
+    "ProductId": 101,
+    "Name": "Laptop",
+    "Description": "A powerful work laptop",
+    "Price": 1249.99
+  },
+  {
+    "ProductId": 102,
+    "Name": "Mouse",
+    "Description": "A wireless optical mouse",
+    "Price": 12.49
+  }
+]

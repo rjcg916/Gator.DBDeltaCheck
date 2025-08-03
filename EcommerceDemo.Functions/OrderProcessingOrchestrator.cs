@@ -1,13 +1,10 @@
-﻿using ECommerceDemo.Data;
-using ECommerceDemo.Data.Data;
+﻿using ECommerceDemo.Data.Data;
 using ECommerceDemo.Data.Entities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask;
 using Microsoft.DurableTask.Client;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System.Threading.Tasks;
 
 namespace ECommerceDemo.Functions;
 
@@ -20,24 +17,21 @@ public class OrderProcessingOrchestrator
         _dbContext = dbContext;
     }
 
-
     [Function("GenericOrchestrationStarter")]
     public async Task<HttpResponseData> Start(
-        // The route now has a template to accept the orchestrator name from the URL
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "orchestrators/{orchestratorName}")] HttpRequestData req,
         [DurableClient] DurableTaskClient client,
         FunctionContext executionContext,
-        string orchestratorName) // The name from the route is passed in here
+        string orchestratorName) 
     {
         var logger = executionContext.GetLogger(nameof(Start));
 
-        var requestBody = await req.ReadFromJsonAsync<object>(); // Read a generic object
+        var requestBody = await req.ReadFromJsonAsync<object>(); 
         if (requestBody == null)
         {
             return req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
         }
 
-        // Use the orchestratorName from the URL to start the correct orchestration
         string instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
             orchestratorName, requestBody);
 
@@ -47,7 +41,7 @@ public class OrderProcessingOrchestrator
     }
 
 
-    // This function defines the workflow. It calls the activity functions.
+
     [Function(nameof(RunOrchestrator))]
     public async Task<string> RunOrchestrator(
         [OrchestrationTrigger] TaskOrchestrationContext context)
@@ -79,8 +73,8 @@ public class OrderProcessingOrchestrator
         {
             CustomerId = customerId,
             OrderDate = DateTime.UtcNow,
-            OrderStatusId = 2, // "Processing"
-            TotalAmount = 99.99m // A dummy amount
+            OrderStatusId = 22, 
+            TotalAmount = 99.99m 
         };
 
         _dbContext.Orders.Add(newOrder);
@@ -105,7 +99,6 @@ public class OrderProcessingOrchestrator
     }
 }
 
-// A simple class to model the input payload for the orchestration
 public class OrchestrationPayload
 {
     public int CustomerId { get; set; }

@@ -1,23 +1,31 @@
 {
   "TestCaseName": "Add new customers using Hiearchical seeding",
   "Arrangements": [
-      {
-        "Strategy": "HierarchicalSeed",
-        "Parameters": {
-          "dataFile": "data/new-customer-order.json",
-          "Outputs": [
-            {
-              "VariableName": "newCustomerId",
-              "Source": {
-                "FromTable": "Customers",
-                "SelectColumn": "CustomerId",
-                "OrderByColumn": "CustomerId",
-                "OrderDirection": "DESC"
-              }
+    {
+      "Strategy": "JsonFileSeed",
+      "Parameters": {
+        "table": "Products",
+        "dataFile": "data/products.json",
+        "allowIdentityInsert": true
+      }
+    },
+    {
+      "Strategy": "HierarchicalSeed",
+      "Parameters": {
+        "dataFile": "data/new-customer-order.json",
+        "Outputs": [
+          {
+            "VariableName": "newCustomerId",
+            "Source": {
+              "FromTable": "Customers",
+              "SelectColumn": "CustomerId",
+              "OrderByColumn": "CustomerId",
+              "OrderDirection": "DESC"
             }
-          ]
-        }
-      }    
+          }
+        ]
+      }
+    }
   ],
   "Actions": [
     {
@@ -26,7 +34,7 @@
         "OrchestratorName": "RunOrchestrator",
         "Payload": {
           "CustomerId": "{newCustomerId}",
-          "NewEmail": "alice.williams.processed@example.com"
+          "NewEmail": "alice.smith@example.com"
         },
         "PollingTimeoutSeconds": 120,
         "ExpectedStatus": "Completed"
@@ -36,7 +44,7 @@
   "Assertions": [
     {
       "TableName": "Customers",
-      "ExpectedDataFile": "expected\\one-customer-remains.json",
+      "ExpectedDataFile": "expected\\customer-email-changed.json",
       "ComparisonStrategy": "IgnoreColumns",
       "ComparisonParameters": [ "CustomerId" ]
     }
