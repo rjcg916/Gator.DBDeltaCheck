@@ -1,4 +1,5 @@
-﻿using ECommerceDemo.Data.Data;
+﻿using System.Net;
+using ECommerceDemo.Data.Data;
 using ECommerceDemo.Data.Entities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -19,27 +20,25 @@ public class OrderProcessingOrchestrator
 
     [Function("GenericOrchestrationStarter")]
     public async Task<HttpResponseData> Start(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "orchestrators/{orchestratorName}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "orchestrators/{orchestratorName}")]
+        HttpRequestData req,
         [DurableClient] DurableTaskClient client,
         FunctionContext executionContext,
-        string orchestratorName) 
+        string orchestratorName)
     {
         var logger = executionContext.GetLogger(nameof(Start));
 
-        var requestBody = await req.ReadFromJsonAsync<object>(); 
-        if (requestBody == null)
-        {
-            return req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-        }
+        var requestBody = await req.ReadFromJsonAsync<object>();
+        if (requestBody == null) return req.CreateResponse(HttpStatusCode.BadRequest);
 
-        string instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
+        var instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
             orchestratorName, requestBody);
 
-        logger.LogInformation("Started orchestration '{orchestratorName}' with ID = '{instanceId}'.", orchestratorName, instanceId);
+        logger.LogInformation("Started orchestration '{orchestratorName}' with ID = '{instanceId}'.", orchestratorName,
+            instanceId);
 
         return client.CreateCheckStatusResponse(req, instanceId);
     }
-
 
 
     [Function(nameof(RunOrchestrator))]
@@ -73,8 +72,8 @@ public class OrderProcessingOrchestrator
         {
             CustomerId = customerId,
             OrderDate = DateTime.UtcNow,
-            OrderStatusId = 22, 
-            TotalAmount = 99.99m 
+            OrderStatusId = 22,
+            TotalAmount = 99.99m
         };
 
         _dbContext.Orders.Add(newOrder);
@@ -85,7 +84,8 @@ public class OrderProcessingOrchestrator
 
 
     [Function(nameof(UpdateCustomerEmailActivity))]
-    public async Task UpdateCustomerEmailActivity([ActivityTrigger] OrchestrationPayload payload, FunctionContext executionContext)
+    public async Task UpdateCustomerEmailActivity([ActivityTrigger] OrchestrationPayload payload,
+        FunctionContext executionContext)
     {
         var logger = executionContext.GetLogger(nameof(UpdateCustomerEmailActivity));
         logger.LogInformation("Updating email for customer {CustomerId}.", payload.CustomerId);

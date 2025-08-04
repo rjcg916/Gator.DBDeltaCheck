@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Comparisons;
 
-
 public class IgnoreColumnsComparisonStrategy : IComparisonStrategy
 {
     public string StrategyName => "IgnoreColumns";
@@ -18,10 +17,9 @@ public class IgnoreColumnsComparisonStrategy : IComparisonStrategy
         var columnsToIgnore = JsonConvert.DeserializeObject<List<string>>(parameters?.ToString() ?? "[]");
 
         if (columnsToIgnore == null || !columnsToIgnore.Any())
-        {
             // If no columns are specified, behave like IgnoreOrder
-            return new IgnoreOrderComparisonStrategy().Compare(beforeStateJson, afterStateJson, expectedStateJson, parameters);
-        }
+            return new IgnoreOrderComparisonStrategy().Compare(beforeStateJson, afterStateJson, expectedStateJson,
+                parameters);
 
         // Remove the ignored columns from both datasets
         var cleanedAfterList = RemoveColumns(afterList, columnsToIgnore);
@@ -38,22 +36,19 @@ public class IgnoreColumnsComparisonStrategy : IComparisonStrategy
         }
     }
 
-    private List<Dictionary<string, object>> RemoveColumns(List<Dictionary<string, object>>? data, List<string> columnsToRemove)
+    private List<Dictionary<string, object>> RemoveColumns(List<Dictionary<string, object>>? data,
+        List<string> columnsToRemove)
     {
         if (data == null) return new List<Dictionary<string, object>>();
 
         foreach (var row in data)
+        foreach (var column in columnsToRemove)
         {
-            foreach (var column in columnsToRemove)
-            {
-                // Use case-insensitive matching for robustness
-                var keyToRemove = row.Keys.FirstOrDefault(k => k.Equals(column, StringComparison.OrdinalIgnoreCase));
-                if (keyToRemove != null)
-                {
-                    row.Remove(keyToRemove);
-                }
-            }
+            // Use case-insensitive matching for robustness
+            var keyToRemove = row.Keys.FirstOrDefault(k => k.Equals(column, StringComparison.OrdinalIgnoreCase));
+            if (keyToRemove != null) row.Remove(keyToRemove);
         }
+
         return data;
     }
 }

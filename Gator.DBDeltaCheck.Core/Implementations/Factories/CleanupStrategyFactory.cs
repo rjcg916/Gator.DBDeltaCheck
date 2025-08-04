@@ -14,7 +14,7 @@ public class CleanupStrategyFactory : ICleanupStrategyFactory
     }
 
     /// <summary>
-    /// Creates an instance of a cleanup strategy based on its registered name.
+    ///     Creates an instance of a cleanup strategy based on its registered name.
     /// </summary>
     public ICleanupStrategy Create(string strategyName)
     {
@@ -27,9 +27,8 @@ public class CleanupStrategyFactory : ICleanupStrategyFactory
 
         // 3. If not found, throw a clear exception.
         if (strategy == null)
-        {
-            throw new ArgumentException($"No cleanup strategy with the name '{strategyName}' has been registered in the dependency injection container.");
-        }
+            throw new ArgumentException(
+                $"No cleanup strategy with the name '{strategyName}' has been registered in the dependency injection container.");
 
         return strategy;
     }

@@ -7,25 +7,26 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Respawn;
 using Sample.DBIntegrationTests.Fixtures;
-using System.Security.Cryptography;
 using Xunit.Microsoft.DependencyInjection.Abstracts;
 
-namespace DB.IntegrationTests.Tests;
+namespace Sample.DBIntegrationTests.Tests;
 
 public class IntegrationTest : TestBed<DependencyInjectionFixture>
 {
-    // Factories for creating strategies dynamically
-    private readonly ISetupStrategyFactory _setupFactory;
     private readonly IActionStrategyFactory _actionFactory;
-    private readonly IComparisonStrategyFactory _comparisonFactory;
     private readonly ICleanupStrategyFactory _cleanupFactory;
+    private readonly IComparisonStrategyFactory _comparisonFactory;
 
     // Core services needed for test execution
     private readonly IDatabaseRepository _dbRepository;
-    private readonly Task<Respawner> _respawnerTask; 
 
-    public IntegrationTest(Xunit.ITestOutputHelper testOutputHelper, DependencyInjectionFixture fixture)
-             : base(testOutputHelper, fixture)
+    private readonly Task<Respawner> _respawnerTask;
+
+    // Factories for creating strategies dynamically
+    private readonly ISetupStrategyFactory _setupFactory;
+
+    public IntegrationTest(ITestOutputHelper testOutputHelper, DependencyInjectionFixture fixture)
+        : base(testOutputHelper, fixture)
     {
         // Resolve services from the fixture's ServiceProvider
         _setupFactory = _fixture.GetService<ISetupStrategyFactory>(testOutputHelper);
@@ -41,7 +42,6 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
     [DatabaseStateTest("TestCases")]
     public async Task RunDatabaseStateTest(MasterTestDefinition testCase)
     {
-
         var testContext = new Dictionary<string, object>();
 
         // A robust try/finally block ensures that cleanup ALWAYS runs,
@@ -51,7 +51,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             // INITIAL CLEANUP: Reset the database to a pristine state.
             // =================================================================
-            var respawner = await _respawnerTask; 
+            var respawner = await _respawnerTask;
             await using var connection = _dbRepository.GetDbConnection();
             await connection.OpenAsync();
             await respawner.ResetAsync(connection);
@@ -62,12 +62,11 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             foreach (var setupInstruction in testCase.Arrangements)
             {
                 var strategy = _setupFactory.Create(setupInstruction.Strategy);
-      
+
                 // Add the base path to the parameters so the strategy can find relative files.
                 setupInstruction.Parameters["_basePath"] = Path.GetDirectoryName(testCase.DefinitionFilePath);
 
                 await strategy.ExecuteAsync(setupInstruction.Parameters, testContext);
-
             }
 
             // =================================================================
@@ -75,7 +74,6 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             foreach (var actInstruction in testCase.Actions)
             {
-
                 ResolveTokens(actInstruction.Parameters, testContext);
 
                 var actionStrategy = _actionFactory.GetStrategy(actInstruction.Strategy);
@@ -123,35 +121,28 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // FINAL CLEANUP: Optionally run specific teardown actions.
             // =================================================================
             if (testCase.Teardowns != null)
-            {
                 foreach (var cleanupInstruction in testCase.Teardowns)
                 {
                     var strategy = _cleanupFactory.Create(cleanupInstruction.Strategy);
                     await strategy.ExecuteAsync(cleanupInstruction.Parameters);
                 }
-            }
         }
     }
+
     /// <summary>
-    /// A helper method to recursively scan a JToken for string values
-    /// that match the token format "{key}" and replace them with values
-    /// from the test context.
+    ///     A helper method to recursively scan a JToken for string values
+    ///     that match the token format "{key}" and replace them with values
+    ///     from the test context.
     /// </summary>
     private void ResolveTokens(JToken token, Dictionary<string, object> context)
     {
         if (token is JObject obj)
         {
-            foreach (var property in obj.Properties())
-            {
-                ResolveTokens(property.Value, context);
-            }
+            foreach (var property in obj.Properties()) ResolveTokens(property.Value, context);
         }
         else if (token is JArray arr)
         {
-            foreach (var item in arr)
-            {
-                ResolveTokens(item, context);
-            }
+            foreach (var item in arr) ResolveTokens(item, context);
         }
         else if (token is JValue val && val.Type == JTokenType.String)
         {
@@ -160,10 +151,8 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             {
                 var key = stringValue.Trim('{', '}');
                 if (context.TryGetValue(key, out var resolvedValue))
-                {
                     // Replace the token JValue with a new JValue of the correct type.
                     val.Replace(JToken.FromObject(resolvedValue));
-                }
             }
         }
     }

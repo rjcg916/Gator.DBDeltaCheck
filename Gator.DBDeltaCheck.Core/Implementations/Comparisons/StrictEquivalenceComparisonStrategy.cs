@@ -1,7 +1,6 @@
 ﻿using Gator.DBDeltaCheck.Core.Abstractions;
 using Newtonsoft.Json.Linq;
 
-
 namespace Gator.DBDeltaCheck.Core.Implementations.Comparisons;
 
 public class StrictEquivalenceComparisonStrategy : IComparisonStrategy

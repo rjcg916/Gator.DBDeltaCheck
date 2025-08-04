@@ -1,4 +1,4 @@
-﻿namespace ECommerceDemo.API.DTOs;
+﻿namespace EcommerceDemo.Api.DTOs;
 
 public class CustomerDto
 {
@@ -7,4 +7,3 @@ public class CustomerDto
     public string LastName { get; set; }
     public string Email { get; set; }
 }
-

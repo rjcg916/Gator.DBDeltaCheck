@@ -2,13 +2,11 @@
 
 namespace ECommerceDemo.Data.Entities;
 
-// A LOOKUP table
 public class Product
 {
-    public int ProductId { get; set; }
-    public string Name { get; set; }
-    public string Description { get; set; }
+    public int ProductId { get; init; }
+    public string Name { get; init; }
+    public string Description { get; init; }
 
-    [Column(TypeName = "decimal(18, 2)")]
-    public decimal Price { get; set; }
+    [Column(TypeName = "decimal(18, 2)")] public decimal Price { get; init; }
 }

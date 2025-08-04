@@ -9,7 +9,8 @@ var host = new HostBuilder()
     {
         // Get the connection string from the configuration (local.settings.json)
         var connectionString = Environment.GetEnvironmentVariable("DefaultConnection")
-            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+                               ?? throw new InvalidOperationException(
+                                   "Connection string 'DefaultConnection' not found.");
 
         // Register the ECommerceDbContext
         services.AddDbContext<ECommerceDbContext>(options =>

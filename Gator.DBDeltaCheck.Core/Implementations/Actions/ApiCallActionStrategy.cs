@@ -6,8 +6,6 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Actions;
 
 public class ApiCallActionStrategy : IActionStrategy
 {
-    public string StrategyName => "ApiCall";
-
     private readonly IHttpClientFactory _httpClientFactory;
 
     public ApiCallActionStrategy(IHttpClientFactory httpClientFactory)
@@ -15,19 +13,20 @@ public class ApiCallActionStrategy : IActionStrategy
         _httpClientFactory = httpClientFactory;
     }
 
+    public string StrategyName => "ApiCall";
+
 
     /// <summary>
-    /// Executes an HTTP request based on the provided parameters.
+    ///     Executes an HTTP request based on the provided parameters.
     /// </summary>
     /// <returns>True if the API call returns a success status code; otherwise, it throws an exception.</returns>
     public async Task<bool> ExecuteAsync(JObject parameters)
     {
-
         var method = new HttpMethod(parameters["Method"]?.Value<string>()?.ToUpper()
-            ?? throw new ArgumentException("'Method' is missing from ApiCall parameters."));
+                                    ?? throw new ArgumentException("'Method' is missing from ApiCall parameters."));
 
         var endpoint = parameters["Endpoint"]?.Value<string>()
-            ?? throw new ArgumentException("'Endpoint' is missing from ApiCall parameters.");
+                       ?? throw new ArgumentException("'Endpoint' is missing from ApiCall parameters.");
 
         var payload = parameters["Payload"]?.ToString() ?? string.Empty;
 
@@ -36,9 +35,7 @@ public class ApiCallActionStrategy : IActionStrategy
         var request = new HttpRequestMessage(method, endpoint);
 
         if (method == HttpMethod.Post || method == HttpMethod.Put || method == HttpMethod.Patch)
-        {
             request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
-        }
 
 
         var response = await client.SendAsync(request);

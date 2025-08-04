@@ -14,11 +14,10 @@ public class SetupStrategyFactory : ISetupStrategyFactory
     }
 
     /// <summary>
-    /// Creates an instance of a setup strategy based on its registered name.
+    ///     Creates an instance of a setup strategy based on its registered name.
     /// </summary>
     public ISetupStrategy Create(string strategyName)
     {
-
         var strategies = _serviceProvider.GetServices<ISetupStrategy>();
 
 
@@ -27,9 +26,8 @@ public class SetupStrategyFactory : ISetupStrategyFactory
 
 
         if (strategy == null)
-        {
-            throw new ArgumentException($"No setup strategy with the name '{strategyName}' has been registered in the dependency injection container.");
-        }
+            throw new ArgumentException(
+                $"No setup strategy with the name '{strategyName}' has been registered in the dependency injection container.");
 
         return strategy;
     }

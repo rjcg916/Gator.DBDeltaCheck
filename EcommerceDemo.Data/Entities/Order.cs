@@ -2,23 +2,21 @@
 
 namespace ECommerceDemo.Data.Entities;
 
-// The MASTER table
 public class Order
 {
-    public int OrderId { get; set; }
-    public DateTime OrderDate { get; set; }
+    public int OrderId { get; init; }
+    public DateTime OrderDate { get; init; }
 
     // Foreign key to the Customer lookup table
-    public int CustomerId { get; set; }
-    public Customer Customer { get; set; }
+    public int CustomerId { get; init; }
+    public Customer Customer { get; init; }
 
     // Foreign key to the OrderStatus lookup table
-    public int OrderStatusId { get; set; }
-    public OrderStatus OrderStatus { get; set; }
+    public int OrderStatusId { get; init; }
+    public OrderStatus OrderStatus { get; init; }
 
-    [Column(TypeName = "decimal(18, 2)")]
-    public decimal TotalAmount { get; set; }
+    [Column(TypeName = "decimal(18, 2)")] public decimal TotalAmount { get; init; }
 
     // Navigation property for the detail records
-    public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+    public ICollection<OrderItem> OrderItems { get; init; } = new List<OrderItem>();
 }

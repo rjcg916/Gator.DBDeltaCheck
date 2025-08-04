@@ -1,6 +1,4 @@
-
-using ECommerceDemo.API.DTOs;
-using ECommerceDemo.Data;
+using EcommerceDemo.Api.DTOs;
 using ECommerceDemo.Data.Data;
 using ECommerceDemo.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -15,7 +13,7 @@ builder.Services.AddSwaggerGen();
 
 // Get the connection string from appsettings.json
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+                       ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 // Register the ECommerceDbContext with the dependency injection container
 builder.Services.AddDbContext<ECommerceDbContext>(options =>
@@ -45,8 +43,8 @@ customerGroup.MapGet("/", async (ECommerceDbContext db) =>
 customerGroup.MapGet("/{id}", async (int id, ECommerceDbContext db) =>
     await db.Customers.FindAsync(id)
         is Customer customer
-            ? Results.Ok(customer)
-            : Results.NotFound());
+        ? Results.Ok(customer)
+        : Results.NotFound());
 
 customerGroup.MapPost("/", async (Customer customer, ECommerceDbContext db) =>
 {
@@ -76,6 +74,7 @@ customerGroup.MapDelete("/{id}", async (int id, ECommerceDbContext db) =>
         await db.SaveChangesAsync();
         return Results.Ok(customer);
     }
+
     return Results.NotFound();
 });
 
@@ -86,10 +85,7 @@ customerGroup.MapDelete("/", async (string firstName, string lastName, ECommerce
     var customer = await db.Customers
         .FirstOrDefaultAsync(c => c.FirstName == firstName && c.LastName == lastName);
 
-    if (customer is null)
-    {
-        return Results.NotFound($"No customer found with the name '{firstName} {lastName}'.");
-    }
+    if (customer is null) return Results.NotFound($"No customer found with the name '{firstName} {lastName}'.");
 
     db.Customers.Remove(customer);
     await db.SaveChangesAsync();
@@ -128,7 +124,7 @@ orderGroup.MapGet("/{id}", async (int id, ECommerceDbContext db) =>
     var order = await db.Orders
         .Include(o => o.Customer)
         .Include(o => o.OrderItems)
-            .ThenInclude(oi => oi.Product)
+        .ThenInclude(oi => oi.Product)
         .FirstOrDefaultAsync(o => o.OrderId == id);
 
     return order is not null ? Results.Ok(order) : Results.NotFound();

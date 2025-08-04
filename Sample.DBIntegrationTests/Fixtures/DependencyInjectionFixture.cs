@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Respawn;
+using Respawn.Graph;
 using Xunit.Microsoft.DependencyInjection;
 using Xunit.Microsoft.DependencyInjection.Abstracts;
 
@@ -19,13 +20,12 @@ namespace Sample.DBIntegrationTests.Fixtures;
 
 public class DependencyInjectionFixture : TestBedFixture
 {
-
     protected override void AddServices(IServiceCollection services, IConfiguration? configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
         RegisterFactories(services);
-        RegisterStrategies(services); 
+        RegisterStrategies(services);
         RegisterApplicationServices(services, configuration);
     }
 
@@ -39,7 +39,6 @@ public class DependencyInjectionFixture : TestBedFixture
 
     private static void RegisterStrategies(IServiceCollection services)
     {
-
         // --- Action Strategies ---
         services.AddTransient<IActionStrategy, ApiCallActionStrategy>();
         services.AddTransient<IActionStrategy, DurableFunctionActionStrategy>();
@@ -61,14 +60,15 @@ public class DependencyInjectionFixture : TestBedFixture
     private static void RegisterApplicationServices(IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("ConnectionString 'DefaultConnection' not found.");
+                               ?? throw new InvalidOperationException(
+                                   "ConnectionString 'DefaultConnection' not found.");
 
         services.AddDbContext<ECommerceDbContext>(options =>
             options.UseSqlServer(connectionString));
 
         services.AddScoped<DbContext>(sp => sp.GetRequiredService<ECommerceDbContext>());
 
-        services.AddSingleton<IDbSchemaService,  EfCachingDbSchemaService>();
+        services.AddSingleton<IDbSchemaService, EfCachingDbSchemaService>();
 
         services.AddSingleton<IDatabaseRepository>(new DapperDatabaseRepository(connectionString));
 
@@ -80,20 +80,14 @@ public class DependencyInjectionFixture : TestBedFixture
         {
             // This URL should be in your appsettings.json
             var baseUrl = configuration.GetValue<string>("ApiBaseUrl");
-            if (!string.IsNullOrEmpty(baseUrl))
-            {
-                client.BaseAddress = new Uri(baseUrl);
-            }
+            if (!string.IsNullOrEmpty(baseUrl)) client.BaseAddress = new Uri(baseUrl);
         });
 
         services.AddHttpClient<IDurableFunctionClient, DurableFunctionClient>(client =>
         {
             // This URL should be in your appsettings.json
             var baseUrl = configuration.GetValue<string>("DurableFunctionBaseUrl");
-            if (!string.IsNullOrEmpty(baseUrl))
-            {
-                client.BaseAddress = new Uri(baseUrl);
-            }
+            if (!string.IsNullOrEmpty(baseUrl)) client.BaseAddress = new Uri(baseUrl);
         });
 
 
@@ -106,14 +100,15 @@ public class DependencyInjectionFixture : TestBedFixture
             await connection.OpenAsync();
 
             var schemaName = configuration["Respawner:SchemaName"] ?? "dbo";
-            var tablesToIgnore = configuration.GetSection("Respawner:TablesToIgnore").Get<string[]>() ?? Array.Empty<string>();
+            var tablesToIgnore = configuration.GetSection("Respawner:TablesToIgnore").Get<string[]>() ??
+                                 Array.Empty<string>();
 
             var respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
             {
-                TablesToIgnore = tablesToIgnore.Select(t => new Respawn.Graph.Table(t)).ToArray(),
+                TablesToIgnore = tablesToIgnore.Select(t => new Table(t)).ToArray(),
                 DbAdapter = DbAdapter.SqlServer,
                 SchemasToInclude = new[] { schemaName },
-                WithReseed = true,
+                WithReseed = true
             });
 
             return respawner;
@@ -122,7 +117,11 @@ public class DependencyInjectionFixture : TestBedFixture
 
     protected override IEnumerable<TestAppSettings> GetTestAppSettings()
     {
-        yield return new() { Filename = "appsettings.json", IsOptional = false };
+        yield return new TestAppSettings { Filename = "appsettings.json", IsOptional = false };
     }
-    protected override ValueTask DisposeAsyncCore() => new();
+
+    protected override ValueTask DisposeAsyncCore()
+    {
+        return new ValueTask();
+    }
 }

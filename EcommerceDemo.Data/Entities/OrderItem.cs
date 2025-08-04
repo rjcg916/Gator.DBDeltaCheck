@@ -2,21 +2,19 @@
 
 namespace ECommerceDemo.Data.Entities;
 
-// A DETAIL table
 public class OrderItem
 {
-    public int OrderItemId { get; set; }
+    public int OrderItemId { get; init; }
 
     // Foreign key to the Order master table
-    public int OrderId { get; set; }
-    public Order Order { get; set; }
+    public int OrderId { get; init; }
+    public Order Order { get; init; }
 
     // Foreign key to the Product lookup table
-    public int ProductId { get; set; }
-    public Product Product { get; set; }
+    public int ProductId { get; init; }
+    public Product Product { get; init; }
 
-    public int Quantity { get; set; }
+    public int Quantity { get; init; }
 
-    [Column(TypeName = "decimal(18, 2)")]
-    public decimal UnitPrice { get; set; } // Price at the time of order
+    [Column(TypeName = "decimal(18, 2)")] public decimal UnitPrice { get; init; } // Price at the time of order
 }

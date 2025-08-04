@@ -5,7 +5,9 @@ namespace ECommerceDemo.Data.Data;
 
 public class ECommerceDbContext : DbContext
 {
-    public ECommerceDbContext(DbContextOptions<ECommerceDbContext> options) : base(options) { }
+    public ECommerceDbContext(DbContextOptions<ECommerceDbContext> options) : base(options)
+    {
+    }
 
     // DbSets for all our entities
     public DbSet<Customer> Customers { get; set; }
@@ -48,4 +50,3 @@ public class ECommerceDbContext : DbContext
         );
     }
 }
-

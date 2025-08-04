@@ -1,9 +1,7 @@
 ﻿using Gator.DBDeltaCheck.Core.Abstractions;
-using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace Gator.DBDeltaCheck.Core.Implementations;
 
@@ -20,12 +18,13 @@ public class DurableFunctionClient : IDurableFunctionClient
     {
         var content = new StringContent(payloadJson, Encoding.UTF8, "application/json");
         var response = await _httpClient.PostAsync($"orchestrators/{orchestratorName}", content);
- 
+
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<OrchestrationStartResponse>();
     }
 
-    public async Task<DurableFunctionStatus> MonitorDurableFunctionStatusAsync(string statusQueryGetUri, int timeoutSeconds, string expectedStatus)
+    public async Task<DurableFunctionStatus> MonitorDurableFunctionStatusAsync(string statusQueryGetUri,
+        int timeoutSeconds, string expectedStatus)
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
         var terminalStates = new HashSet<string> { "Completed", "Failed", "Terminated", "Canceled" };
@@ -34,7 +33,7 @@ public class DurableFunctionClient : IDurableFunctionClient
         {
             var response = await _httpClient.GetAsync(statusQueryGetUri, cts.Token);
             response.EnsureSuccessStatusCode();
-            var status = await response.Content.ReadFromJsonAsync<DurableFunctionStatus>(cancellationToken: cts.Token);
+            var status = await response.Content.ReadFromJsonAsync<DurableFunctionStatus>(cts.Token);
 
             if (terminalStates.Contains(status.runtimeStatus))
             {
@@ -44,6 +43,7 @@ public class DurableFunctionClient : IDurableFunctionClient
                     throw new InvalidOperationException(
                         $"Orchestration reached terminal state '{status.runtimeStatus}', but expected '{expectedStatus}'. Output: {outputJson}");
                 }
+
                 return status; // Success!
             }
 

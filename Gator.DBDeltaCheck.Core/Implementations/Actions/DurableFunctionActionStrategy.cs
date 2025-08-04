@@ -5,8 +5,6 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Actions;
 
 public class DurableFunctionActionStrategy : IActionStrategy
 {
-    public string StrategyName => "DurableFunction";
-
     private readonly IDurableFunctionClient _durableFunctionClient;
 
     public DurableFunctionActionStrategy(IDurableFunctionClient durableFunctionClient)
@@ -14,14 +12,17 @@ public class DurableFunctionActionStrategy : IActionStrategy
         _durableFunctionClient = durableFunctionClient;
     }
 
+    public string StrategyName => "DurableFunction";
+
     public async Task<bool> ExecuteAsync(JObject parameters)
     {
         // 1. Get configuration from the JSON parameters.
         var orchestratorName = parameters["OrchestratorName"]?.Value<string>()
-            ?? throw new ArgumentException("'OrchestratorName' is missing from DurableFunction parameters.");
+                               ?? throw new ArgumentException(
+                                   "'OrchestratorName' is missing from DurableFunction parameters.");
 
         var payloadToken = parameters["Payload"]
-            ?? throw new ArgumentException("'Payload' is missing from DurableFunction parameters.");
+                           ?? throw new ArgumentException("'Payload' is missing from DurableFunction parameters.");
         var payload = payloadToken.ToString();
 
         var timeout = parameters["PollingTimeoutSeconds"]?.Value<int>() ?? 300; // Default to 5 minutes

@@ -1,13 +1,10 @@
-﻿using Dapper;
+﻿using System.Data.Common;
+using System.Text;
+using Dapper;
 using Gator.DBDeltaCheck.Core.Abstractions;
 using Microsoft.Data.SqlClient;
-using System.Data;
-using System.Data.Common;
-using System.Text;
-
 
 namespace Gator.DBDeltaCheck.Core.Implementations;
-
 
 public class DapperDatabaseRepository : IDatabaseRepository
 {
@@ -18,7 +15,10 @@ public class DapperDatabaseRepository : IDatabaseRepository
         _connectionString = connectionString;
     }
 
-    public DbConnection GetDbConnection() => new SqlConnection(_connectionString);
+    public DbConnection GetDbConnection()
+    {
+        return new SqlConnection(_connectionString);
+    }
 
     public async Task<IEnumerable<T>> QueryAsync<T>(string sql, object? param = null) where T : class
     {
@@ -40,26 +40,20 @@ public class DapperDatabaseRepository : IDatabaseRepository
 
     public async Task<int> InsertRecordAsync(string tableName, object data, bool allowIdentityInsert = false)
     {
-
         var recordData = (IDictionary<string, object>)data;
 
         var propertyNames = recordData.Keys;
         if (!propertyNames.Any())
-        {
             throw new ArgumentException("The data dictionary provided has no keys to insert.", nameof(data));
-        }
 
         var columnNames = string.Join(", ", propertyNames);
         var valueParameters = string.Join(", ", propertyNames.Select(p => "@" + p));
 
         var sqlBuilder = new StringBuilder();
 
-        if (allowIdentityInsert)
-        {
-            sqlBuilder.AppendLine($"SET IDENTITY_INSERT {tableName} ON; ");
-        }
+        if (allowIdentityInsert) sqlBuilder.AppendLine($"SET IDENTITY_INSERT {tableName} ON; ");
 
-        sqlBuilder.AppendLine($"INSERT INTO {tableName} ({columnNames}) VALUES ({valueParameters});"); 
+        sqlBuilder.AppendLine($"INSERT INTO {tableName} ({columnNames}) VALUES ({valueParameters});");
 
 
         using var connection = GetDbConnection();
@@ -67,25 +61,21 @@ public class DapperDatabaseRepository : IDatabaseRepository
         return await connection.ExecuteAsync(sqlBuilder.ToString(), data);
     }
 
-    public async Task<T> InsertRecordAndGetIdAsync<T>(string tableName, object data, string idColumnName, bool allowIdentityInsert = false)
+    public async Task<T> InsertRecordAndGetIdAsync<T>(string tableName, object data, string idColumnName,
+        bool allowIdentityInsert = false)
     {
         var recordData = (IDictionary<string, object>)data;
 
         var propertyNames = recordData.Keys;
         if (!propertyNames.Any())
-        {
             throw new ArgumentException("The data dictionary provided has no keys to insert.", nameof(data));
-        }
 
         var columnNames = string.Join(", ", propertyNames);
         var valueParameters = string.Join(", ", propertyNames.Select(p => "@" + p));
 
-        var sqlBuilder = new StringBuilder();              
+        var sqlBuilder = new StringBuilder();
 
-        if (allowIdentityInsert)
-        {
-            sqlBuilder.AppendLine($"SET IDENTITY_INSERT {tableName} ON;");
-        }
+        if (allowIdentityInsert) sqlBuilder.AppendLine($"SET IDENTITY_INSERT {tableName} ON;");
 
         sqlBuilder.AppendLine($"INSERT INTO {tableName} ({columnNames}) ");
         sqlBuilder.Append($"OUTPUT INSERTED.{idColumnName} ");

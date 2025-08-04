@@ -1,5 +1,4 @@
-﻿namespace ECommerceDemo.API.DTOs;
-
+﻿namespace EcommerceDemo.Api.DTOs;
 
 public class OrderDto
 {

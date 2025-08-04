@@ -14,12 +14,11 @@ public class ActionStrategyFactory : IActionStrategyFactory
     }
 
     /// <summary>
-    /// Gets an instance of an action strategy based on its registered name.
-    /// This implementation dynamically resolves the strategy from the DI container.
+    ///     Gets an instance of an action strategy based on its registered name.
+    ///     This implementation dynamically resolves the strategy from the DI container.
     /// </summary>
     public IActionStrategy GetStrategy(string strategyName)
     {
-
         var strategies = _serviceProvider.GetServices<IActionStrategy>();
 
         var strategy = strategies.FirstOrDefault(s =>
@@ -27,9 +26,8 @@ public class ActionStrategyFactory : IActionStrategyFactory
 
 
         if (strategy == null)
-        {
-            throw new NotSupportedException($"Action strategy '{strategyName}' is not supported or has not been registered in the dependency injection container.");
-        }
+            throw new NotSupportedException(
+                $"Action strategy '{strategyName}' is not supported or has not been registered in the dependency injection container.");
 
         return strategy;
     }
