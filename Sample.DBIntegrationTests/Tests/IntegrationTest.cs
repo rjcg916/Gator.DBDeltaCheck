@@ -25,6 +25,8 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
     // Factories for creating strategies dynamically
     private readonly ISetupStrategyFactory _setupFactory;
 
+    private readonly IExpectedStateResolver _stateResolver;
+
     public IntegrationTest(ITestOutputHelper testOutputHelper, DependencyInjectionFixture fixture)
         : base(testOutputHelper, fixture)
     {
@@ -36,6 +38,8 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
 
         _dbRepository = _fixture.GetService<IDatabaseRepository>(testOutputHelper);
         _respawnerTask = _fixture.GetService<Task<Respawner>>(testOutputHelper);
+
+        _stateResolver = _fixture.GetService<IExpectedStateResolver>(testOutputHelper);
     }
 
     [Theory]
@@ -90,29 +94,49 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
                 var actualData = await _dbRepository.QueryAsync<object>(
                     $"SELECT * FROM {assertion.TableName}"
                 );
-                var actualStateJson = JsonConvert.SerializeObject(actualData);
+                var actualStateJson = JsonConvert.SerializeObject(actualData, Formatting.Indented);
 
-                // 2. Load the expected state from the specified JSON file.
-                // The path is resolved relative to the test definition file itself.
+                // 2. Load the raw expected state from the specified JSON file.
                 var testCaseDir = Path.GetDirectoryName(testCase.DefinitionFilePath);
                 var expectedDataPath = Path.Combine(testCaseDir, assertion.ExpectedDataFile);
-                var expectedStateJson = await File.ReadAllTextAsync(expectedDataPath);
+                var rawExpectedStateJson = await File.ReadAllTextAsync(expectedDataPath);
 
-                // 3. Use the factory to get the correct comparison strategy.
+                string finalExpectedStateJson;
+
+                // 3. If a data map is specified, resolve the lookups.
+                if (!string.IsNullOrEmpty(assertion.DataMapFile))
+                {
+                    var mapPath = Path.Combine(testCaseDir, assertion.DataMapFile);
+                    if (!File.Exists(mapPath))
+                        throw new FileNotFoundException($"The data map file was not found: {mapPath}");
+
+                    var mapContent = await File.ReadAllTextAsync(mapPath);
+                    var dataMap = JsonConvert.DeserializeObject<DataMap>(mapContent);
+
+                    // Use the resolver to transform the template JSON into the final, comparable JSON.
+                    finalExpectedStateJson = (string)await _stateResolver.Resolve(rawExpectedStateJson, dataMap, assertion.TableName);
+                }
+                else
+                {
+                    // Otherwise, use the raw file content as is.
+                    finalExpectedStateJson = rawExpectedStateJson;
+                }
+
+                // 4. Use the factory to get the correct comparison strategy.
                 var comparisonStrategy = _comparisonFactory.GetStrategy(assertion.ComparisonStrategy);
 
-                // 4. Execute the comparison.
+                // 5. Execute the comparison using the final, potentially resolved, expected state.
                 var areEqual = comparisonStrategy.Compare(
                     null, // beforeStateJson - not used in this simple assertion
                     actualStateJson,
-                    expectedStateJson,
+                    finalExpectedStateJson,
                     assertion.ComparisonParameters
                 );
 
-                // 5. Use FluentAssertions for a clear pass/fail message.
+                // 6. Use FluentAssertions for a clear pass/fail message.
                 areEqual.Should().BeTrue(
-                    $"comparison failed for table '{assertion.TableName}' using strategy '{assertion.ComparisonStrategy}'."
-                );
+                    $"comparison failed for table '{assertion.TableName}' using strategy '{assertion.ComparisonStrategy}'.");
+
             }
         }
         finally

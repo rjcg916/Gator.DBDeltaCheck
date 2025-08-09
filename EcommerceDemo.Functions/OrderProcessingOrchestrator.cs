@@ -37,7 +37,7 @@ public class OrderProcessingOrchestrator
         logger.LogInformation("Started orchestration '{orchestratorName}' with ID = '{instanceId}'.", orchestratorName,
             instanceId);
 
-        return client.CreateCheckStatusResponse(req, instanceId);
+        return  client.CreateCheckStatusResponse(req, instanceId);
     }
 
 
@@ -102,5 +102,5 @@ public class OrderProcessingOrchestrator
 public class OrchestrationPayload
 {
     public int CustomerId { get; set; }
-    public string NewEmail { get; set; }
+    public required string NewEmail { get; set; }
 }

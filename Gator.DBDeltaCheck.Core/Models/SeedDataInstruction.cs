@@ -8,10 +8,10 @@ public class SeedDataInstruction
     /// <summary>
     ///     The name of the SQL database table to seed.
     /// </summary>
-    public string Table { get; set; }
+    public required string Table { get; set; }
 
     /// <summary>
     ///     The relative path to a JSON file containing an array of objects to insert into the table.
     /// </summary>
-    public string DataFilePath { get; set; }
+    public required string DataFilePath { get; set; }
 }

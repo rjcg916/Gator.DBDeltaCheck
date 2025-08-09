@@ -18,4 +18,19 @@
     <PackageReference Include="xunit.v3.extensibility.core" Version="3.0.0" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <!-- NUGET PACKAGE METADATA -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Gator.DBDeltaCheck.Core</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Gator Software</Authors>
+    <Description>
+      A data-driven, extensible .NET framework for simplifying database integration testing.
+      Define complex test scenarios—including database setup, actions, and state validation—entirely
+      through simple JSON configuration files.
+    </Description>
+    <RepositoryUrl>https://github.com/rjcg916/Gator.DBDeltaCheck</RepositoryUrl>
+    <PackageTags>testing, integration-testing, database, xunit, data-driven, json, efcore, dapper</PackageTags>
+  </PropertyGroup>
+
 </Project>

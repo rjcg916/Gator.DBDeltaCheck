@@ -68,6 +68,8 @@ public class DependencyInjectionFixture : TestBedFixture
 
         services.AddScoped<DbContext>(sp => sp.GetRequiredService<ECommerceDbContext>());
 
+
+
         services.AddSingleton<IDbSchemaService, EfCachingDbSchemaService>();
 
         services.AddSingleton<IDatabaseRepository>(new DapperDatabaseRepository(connectionString));
@@ -113,6 +115,8 @@ public class DependencyInjectionFixture : TestBedFixture
 
             return respawner;
         });
+
+        services.AddTransient<IExpectedStateResolver, ExpectedStateResolver>();
     }
 
     protected override IEnumerable<TestAppSettings> GetTestAppSettings()

@@ -13,7 +13,8 @@
       "Strategy": "HierarchicalSeed",
       "Parameters": {
         "rootTable": "Customer",
-        "dataFile": "data/new_customer_order.json"
+        "dataFile": "data/new_customer_order_map.json",
+        "dataMapFile": "map/ecommerce.json"
       }
     }
   ],
@@ -30,16 +31,19 @@
     {
       "TableName": "Customers",
       "ExpectedDataFile": "expected/customer_expected.json",
+      "dataMapFile": "map/ecommerce.json",
       "ComparisonStrategy": "IgnoreOrder"
     },
     {
       "TableName": "Orders",
-      "ExpectedDataFile": "expected/order_expected.json",
+      "ExpectedDataFile": "expected/order_expected_map.json",
+      "dataMapFile": "map/ecommerce.json",
       "ComparisonStrategy": "IgnoreOrder"
     },
     {
       "TableName": "OrderItems",
-      "ExpectedDataFile": "expected/orderitems_expected.json",
+      "ExpectedDataFile": "expected/orderitems_expected_map.json",
+      "dataMapFile": "map/ecommerce.json",
       "ComparisonStrategy": "IgnoreOrder"
     }
   ]

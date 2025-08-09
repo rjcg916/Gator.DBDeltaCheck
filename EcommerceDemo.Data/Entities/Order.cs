@@ -9,11 +9,11 @@ public class Order
 
     // Foreign key to the Customer lookup table
     public int CustomerId { get; init; }
-    public Customer Customer { get; init; }
+    public Customer? Customer { get; init; }
 
     // Foreign key to the OrderStatus lookup table
     public int OrderStatusId { get; init; }
-    public OrderStatus OrderStatus { get; init; }
+    public OrderStatus? OrderStatus { get; init; }
 
     [Column(TypeName = "decimal(18, 2)")] public decimal TotalAmount { get; init; }
 

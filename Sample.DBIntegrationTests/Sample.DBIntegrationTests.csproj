@@ -33,13 +33,19 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="TestCases\CreateFullOrder\Data\new-customer-order.json">
+    <None Update="TestCases\CreateFullOrder\Data\new_customer_order_map.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestCases\CreateFullOrder\Data\new_customer_order.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TestCases\CreateFullOrder\Data\products.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TestCases\CreateFullOrder\Expected\customer_expected.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestCases\CreateFullOrder\Expected\orderitems_expected_map.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TestCases\CreateFullOrder\Expected\orderitems_expected.json">

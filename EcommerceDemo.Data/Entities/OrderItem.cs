@@ -8,11 +8,11 @@ public class OrderItem
 
     // Foreign key to the Order master table
     public int OrderId { get; init; }
-    public Order Order { get; init; }
+    public required Order Order { get; init; }
 
     // Foreign key to the Product lookup table
     public int ProductId { get; init; }
-    public Product Product { get; init; }
+    public required Product Product { get; init; }
 
     public int Quantity { get; init; }
 

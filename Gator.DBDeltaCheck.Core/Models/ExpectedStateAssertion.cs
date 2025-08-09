@@ -8,9 +8,12 @@ namespace Gator.DBDeltaCheck.Core.Models;
 /// </summary>
 public class ExpectedStateAssertion
 {
-    [JsonProperty("TableName")] public string TableName { get; set; }
+    [JsonProperty("TableName")] public required string TableName { get; set; }
 
-    [JsonProperty("ExpectedDataFile")] public string ExpectedDataFile { get; set; }
+    [JsonProperty("ExpectedDataFile")] public required string ExpectedDataFile { get; set; }
+
+    [JsonProperty("DataMapFile")]
+    public string? DataMapFile { get; set; }
 
     [JsonProperty("ComparisonStrategy")] public string ComparisonStrategy { get; set; } = "IgnoreOrder";
 

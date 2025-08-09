@@ -2,7 +2,7 @@
 
 public class DurableFunctionAction
 {
-    public string FunctionName { get; set; }
+    public required string FunctionName { get; set; }
 
-    public object Payload { get; set; }
+    public required object Payload { get; set; }
 }

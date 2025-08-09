@@ -4,7 +4,7 @@ namespace Gator.DBDeltaCheck.Core.Models;
 
 public class ComparisonStrategyDefinition
 {
-    public string Strategy { get; set; }
+    public required string Strategy { get; set; }
 
-    public JObject Parameters { get; set; }
+    public required JObject Parameters { get; set; }
 }
