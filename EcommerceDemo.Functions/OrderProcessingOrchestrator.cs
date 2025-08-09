@@ -99,7 +99,7 @@ public class OrderProcessingOrchestrator
     }
 }
 
-public class OrchestrationPayload
+internal class OrchestrationPayload
 {
     public int CustomerId { get; set; }
     public required string NewEmail { get; set; }
