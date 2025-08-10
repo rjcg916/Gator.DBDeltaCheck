@@ -3,7 +3,7 @@
     "OrderId": 1,
     "OrderDate": "2025-07-31T10:00:00",
     "Customer": "alice.williams@example.com",
-    "OrderStatus": "Shipping",
+    "OrderStatus": "Processing",
     "TotalAmount": 1274.98
   }
 ]

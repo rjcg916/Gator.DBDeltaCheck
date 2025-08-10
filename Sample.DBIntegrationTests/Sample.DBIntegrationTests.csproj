@@ -8,6 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="TestCases\CreateFullOrder\CreateFullOrder.test.json" />
+    <None Remove="TestCases\HelloDurableFunctionTest\HelloDurableFunctionTest.test.json" />
+    <None Remove="TestCases\HelloTest\HelloTest.test.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.7">
       <PrivateAssets>all</PrivateAssets>
@@ -33,6 +39,9 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="TestCases\CreateFullOrder\CreateFullOrderMap.test.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="TestCases\CreateFullOrder\Data\new_customer_order_map.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -54,6 +63,12 @@
     <None Update="TestCases\CreateFullOrder\Expected\order_expected.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="TestCases\CreateFullOrder\Expected\order_expected_map.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestCases\CreateFullOrder\Map\ecommerce.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="TestCases\HelloDurableFunctionTest\Data\new-customer-order.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -67,9 +82,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TestCases\HelloTest\Expected\one-customer-remains.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="TestCases\HelloDurableFunctionTest\HelloDurableFunctionTest.test.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

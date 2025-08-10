@@ -25,7 +25,8 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
     // Factories for creating strategies dynamically
     private readonly ISetupStrategyFactory _setupFactory;
 
-    private readonly IExpectedStateResolver _stateResolver;
+ //   private readonly IExpectedStateResolver _stateResolver;
+    private readonly IActualStateMapper _actualStateMapper;
 
     public IntegrationTest(ITestOutputHelper testOutputHelper, DependencyInjectionFixture fixture)
         : base(testOutputHelper, fixture)
@@ -39,13 +40,17 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
         _dbRepository = _fixture.GetService<IDatabaseRepository>(testOutputHelper);
         _respawnerTask = _fixture.GetService<Task<Respawner>>(testOutputHelper);
 
-        _stateResolver = _fixture.GetService<IExpectedStateResolver>(testOutputHelper);
+     //   _stateResolver = _fixture.GetService<IExpectedStateResolver>(testOutputHelper);
+        _actualStateMapper = _fixture.GetService<IActualStateMapper>(testOutputHelper);
+
     }
 
     [Theory]
     [DatabaseStateTest("TestCases")]
     public async Task RunDatabaseStateTest(MasterTestDefinition testCase)
     {
+
+        
         var testContext = new Dictionary<string, object>();
 
         // A robust try/finally block ensures that cleanup ALWAYS runs,
@@ -90,36 +95,34 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             foreach (var assertion in testCase.Assertions)
             {
-                // 1. Get the actual state of the table AFTER the action.
+     
+                // 1. Load the expected state from the specified JSON file.
+                var testCaseDir = Path.GetDirectoryName(testCase.DefinitionFilePath);
+                var expectedDataPath = Path.Combine(testCaseDir, assertion.ExpectedDataFile);
+                var expectedStateJson = await File.ReadAllTextAsync(expectedDataPath);
+
+                // 2. Get the actual state of the table AFTER the action.
                 var actualData = await _dbRepository.QueryAsync<object>(
                     $"SELECT * FROM {assertion.TableName}"
                 );
-                var actualStateJson = JsonConvert.SerializeObject(actualData, Formatting.Indented);
 
-                // 2. Load the raw expected state from the specified JSON file.
-                var testCaseDir = Path.GetDirectoryName(testCase.DefinitionFilePath);
-                var expectedDataPath = Path.Combine(testCaseDir, assertion.ExpectedDataFile);
-                var rawExpectedStateJson = await File.ReadAllTextAsync(expectedDataPath);
+                var rawAfterStateJson = JsonConvert.SerializeObject(actualData, Formatting.Indented);
 
-                string finalExpectedStateJson;
+                string afterStateJson;
 
-                // 3. If a data map is specified, resolve the lookups.
+                // 3. If a data map is specified, transform the AFTER data into the "friendly" format.
                 if (!string.IsNullOrEmpty(assertion.DataMapFile))
                 {
                     var mapPath = Path.Combine(testCaseDir, assertion.DataMapFile);
-                    if (!File.Exists(mapPath))
-                        throw new FileNotFoundException($"The data map file was not found: {mapPath}");
-
                     var mapContent = await File.ReadAllTextAsync(mapPath);
                     var dataMap = JsonConvert.DeserializeObject<DataMap>(mapContent);
 
-                    // Use the resolver to transform the template JSON into the final, comparable JSON.
-                    finalExpectedStateJson = (string)await _stateResolver.Resolve(rawExpectedStateJson, dataMap, assertion.TableName);
+                    afterStateJson = await _actualStateMapper.Map(rawAfterStateJson, dataMap, assertion.TableName);
                 }
                 else
                 {
-                    // Otherwise, use the raw file content as is.
-                    finalExpectedStateJson = rawExpectedStateJson;
+                    // If no map, we compare the raw database output.
+                    afterStateJson = rawAfterStateJson;
                 }
 
                 // 4. Use the factory to get the correct comparison strategy.
@@ -128,14 +131,14 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
                 // 5. Execute the comparison using the final, potentially resolved, expected state.
                 var areEqual = comparisonStrategy.Compare(
                     null, // beforeStateJson - not used in this simple assertion
-                    actualStateJson,
-                    finalExpectedStateJson,
+                    afterStateJson, 
+                    expectedStateJson, 
                     assertion.ComparisonParameters
                 );
 
                 // 6. Use FluentAssertions for a clear pass/fail message.
                 areEqual.Should().BeTrue(
-                    $"comparison failed for table '{assertion.TableName}' using strategy '{assertion.ComparisonStrategy}'.");
+                    $"comparison failed for table '{assertion.TableName}' using strategy '{assertion.ComparisonStrategy}' [ Actual '{afterStateJson}'<> Expected '{expectedStateJson}']" );
 
             }
         }

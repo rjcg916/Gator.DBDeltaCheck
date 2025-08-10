@@ -78,10 +78,59 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Seeding
             }
         }
 
-        // The private recursive methods now pass the 'dataMap' dictionary down the call stack.
-        private async Task ProcessToken(string tableName, JToken token, Dictionary<string, object> parentKeys, bool allowIdentityInsert, Dictionary<string, TableMap> dataMap) { /* ... unchanged ... */ }
-        private async Task ProcessRecord(string tableName, JObject record, Dictionary<string, object> parentKeys, bool allowIdentityInsert, Dictionary<string, TableMap> dataMap) { /* ... unchanged ... */ }
 
+        private async Task ProcessToken(string tableName, JToken token, Dictionary<string, object> parentKeys, bool allowIdentityInsert, Dictionary<string, TableMap> dataMap)
+        {
+            if (token is JArray array)
+            {
+                foreach (var record in array.Children<JObject>())
+                {
+                    await ProcessRecord(tableName, record, parentKeys, allowIdentityInsert, dataMap);
+                }
+            }
+            else if (token is JObject record)
+            {
+                await ProcessRecord(tableName, record, parentKeys, allowIdentityInsert, dataMap);
+            }
+        }
+        private async Task ProcessRecord(string tableName, JObject record, Dictionary<string, object> parentKeys, bool allowIdentityInsert, Dictionary<string, TableMap> dataMap)
+        {
+            var recordData = record.ToObject<Dictionary<string, JToken>>()!;
+
+            var childNodes = new Dictionary<string, JToken>();
+            var schemaRelations = await _schemaService.GetChildTablesAsync(tableName);
+            foreach (var relation in schemaRelations)
+            {
+                if (recordData.TryGetValue(relation.ChildCollectionName, out var childData))
+                {
+                    childNodes.Add(relation.ChildTableName, childData);
+                    recordData.Remove(relation.ChildCollectionName);
+                }
+            }
+
+            // Pass the map to the helper method
+            var finalRecordData = await PrepareRecordData(tableName, recordData, parentKeys, dataMap);
+
+            var primaryKeyName = await _schemaService.GetPrimaryKeyColumnNameAsync(tableName);
+            var primaryKeyType = await _schemaService.GetPrimaryKeyTypeAsync(tableName);
+
+            var methodInfo = typeof(IDatabaseRepository).GetMethod(nameof(IDatabaseRepository.InsertRecordAndGetIdAsync));
+            var genericMethod = methodInfo.MakeGenericMethod(primaryKeyType);
+
+            var task = (Task)genericMethod.Invoke(_repository, new object[] { tableName, finalRecordData, primaryKeyName, allowIdentityInsert });
+            await task;
+
+            var primaryKeyValue = ((dynamic)task).Result;
+
+            foreach (var childNode in childNodes)
+            {
+                var childTableName = childNode.Key;
+                var childData = childNode.Value;
+                var foreignKeyForParent = await _schemaService.GetForeignKeyColumnNameAsync(childTableName, tableName);
+                var newParentKeys = new Dictionary<string, object> { { foreignKeyForParent, primaryKeyValue } };
+                await ProcessToken(childTableName, childData, newParentKeys, allowIdentityInsert, dataMap);
+            }
+        }
 
         private async Task<Dictionary<string, object>> PrepareRecordData(
             string tableName,

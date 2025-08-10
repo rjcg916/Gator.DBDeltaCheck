@@ -1,15 +1,15 @@
 [
   {
     "OrderItemId": 1,
-    "OrderId": 1,
+    "OrderDate": "2025-07-31T10:00:00",
     "Product": "Laptop",
     "Quantity": 1,
     "UnitPrice": 1249.99
   },
   {
     "OrderItemId": 2,
-    "OrderId": 1,
-    "ProductId": "Mouse",
+    "OrderDate": "2025-07-31T10:00:00",
+    "Product": "Mouse",
     "Quantity": 2,
     "UnitPrice": 12.49
   }

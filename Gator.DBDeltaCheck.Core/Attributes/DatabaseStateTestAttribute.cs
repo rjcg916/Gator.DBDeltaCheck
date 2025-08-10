@@ -1,6 +1,6 @@
-﻿using System.Reflection;
-using Gator.DBDeltaCheck.Core.Models;
+﻿using Gator.DBDeltaCheck.Core.Models;
 using Newtonsoft.Json;
+using System.Reflection;
 using Xunit;
 using Xunit.Sdk;
 using Xunit.v3;
@@ -44,9 +44,14 @@ public class DatabaseStateTestAttribute : DataAttribute
         {
             var testDefinition = LoadTestDefinition(file);
 
-            // Use the base class's helper method to convert our object[] into an ITheoryDataRow.
-            // This is the correct pattern for v3.
-            testDefinitions.Add(ConvertDataRow(new object[] { testDefinition }));
+            // Create a TheoryDataRow, which is the object XUnit v3 expects.
+            var dataRow = new TheoryDataRow<MasterTestDefinition>(testDefinition);
+
+            // Set the custom display name using the TestCaseName from the JSON file.
+            // This name will appear in the Test Explorer.
+            dataRow.TestDisplayName = testDefinition.TestCaseName;
+            
+            testDefinitions.Add(dataRow);
         }
 
         // Wrap the result in a ValueTask for the async-first API.
