@@ -1,4 +1,5 @@
 ﻿using Gator.DBDeltaCheck.Core.Abstractions;
+using Gator.DBDeltaCheck.Core.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -18,7 +19,7 @@ public class JsonFileSeedingStrategy : ISetupStrategy
     /// <summary>
     ///     Executes a simple data seed by inserting all records from a single JSON file into a single table.
     /// </summary>
-    public async Task ExecuteAsync(JObject parameters, Dictionary<string, object> testContext)
+    public async Task ExecuteAsync(JObject parameters, Dictionary<string, object> testContext, DataMap? dataMap = null)
     {
         var tableName = parameters["table"]?.Value<string>()
                         ?? throw new ArgumentException("The 'table' property is missing in the JsonFileSeed config.");
@@ -40,6 +41,7 @@ public class JsonFileSeedingStrategy : ISetupStrategy
         var records = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(seedContent);
         if (records == null) return;
 
-        foreach (var record in records) await _repository.InsertRecordAsync(tableName, record, allowIdentityInsert);
+        foreach (var record in records)
+            await _repository.InsertRecordAsync(tableName, record, allowIdentityInsert);
     }
 }

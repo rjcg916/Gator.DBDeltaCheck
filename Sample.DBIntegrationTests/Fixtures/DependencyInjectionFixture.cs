@@ -116,8 +116,9 @@ public class DependencyInjectionFixture : TestBedFixture
             return respawner;
         });
 
-        services.AddTransient<IExpectedStateResolver, ExpectedStateResolver>();
-        services.AddTransient<IActualStateMapper, ActualStateMapper>();
+        //services.AddTransient<IExpectedStateResolver, ExpectedStateResolver>();
+        //services.AddTransient<IActualStateMapper, ActualStateMapper>();
+        services.AddTransient<IDataMapper, DataMapper>();
     }
 
     protected override IEnumerable<TestAppSettings> GetTestAppSettings()

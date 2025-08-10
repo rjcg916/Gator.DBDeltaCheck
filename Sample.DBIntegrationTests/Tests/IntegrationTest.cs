@@ -25,8 +25,8 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
     // Factories for creating strategies dynamically
     private readonly ISetupStrategyFactory _setupFactory;
 
- //   private readonly IExpectedStateResolver _stateResolver;
-    private readonly IActualStateMapper _actualStateMapper;
+
+    private readonly IDataMapper _dataMapper;
 
     public IntegrationTest(ITestOutputHelper testOutputHelper, DependencyInjectionFixture fixture)
         : base(testOutputHelper, fixture)
@@ -40,9 +40,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
         _dbRepository = _fixture.GetService<IDatabaseRepository>(testOutputHelper);
         _respawnerTask = _fixture.GetService<Task<Respawner>>(testOutputHelper);
 
-     //   _stateResolver = _fixture.GetService<IExpectedStateResolver>(testOutputHelper);
-        _actualStateMapper = _fixture.GetService<IActualStateMapper>(testOutputHelper);
-
+        _dataMapper = _fixture.GetService<IDataMapper>(testOutputHelper);
     }
 
     [Theory]
@@ -50,8 +48,16 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
     public async Task RunDatabaseStateTest(MasterTestDefinition testCase)
     {
 
-        
         var testContext = new Dictionary<string, object>();
+        var testCaseDir = Path.GetDirectoryName(testCase.DefinitionFilePath);
+
+        DataMap? globalDataMap = null;
+        if (!string.IsNullOrEmpty(testCase.DataMapFile))
+        {
+            var globalPath = Path.Combine(testCaseDir, testCase.DataMapFile);
+            var mapContent = await File.ReadAllTextAsync(globalPath);
+            globalDataMap = JsonConvert.DeserializeObject<DataMap>(mapContent);
+        }
 
         // A robust try/finally block ensures that cleanup ALWAYS runs,
         // even if the test fails during the Act or Assert phase.
@@ -62,20 +68,29 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             var respawner = await _respawnerTask;
             await using var connection = _dbRepository.GetDbConnection();
-            await connection.OpenAsync();
+            await connection.OpenAsync(TestContext.Current.CancellationToken);
             await respawner.ResetAsync(connection);
 
             // =================================================================
             // ARRANGE: Execute all setup actions defined in the JSON.
             // =================================================================
-            foreach (var setupInstruction in testCase.Arrangements)
+            foreach (var setupInstruction in testCase.Arrange)
             {
                 var strategy = _setupFactory.Create(setupInstruction.Strategy);
 
                 // Add the base path to the parameters so the strategy can find relative files.
-                setupInstruction.Parameters["_basePath"] = Path.GetDirectoryName(testCase.DefinitionFilePath);
+                setupInstruction.Parameters["_basePath"] = testCaseDir;
 
-                await strategy.ExecuteAsync(setupInstruction.Parameters, testContext);
+                var stepMap = globalDataMap;
+                var localMapPath = setupInstruction.Parameters["dataMapFile"]?.Value<string>();
+
+                // If a local override is defined in this step's parameters, load it.
+                if (!string.IsNullOrEmpty(localMapPath))
+                {
+                    stepMap = await LoadDataMapAsync(testCaseDir, localMapPath);
+                }
+
+                await strategy.ExecuteAsync(setupInstruction.Parameters, testContext, stepMap);
             }
 
             // =================================================================
@@ -93,13 +108,13 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             // ASSERT: Verify the outcome is as expected.
             // =================================================================
-            foreach (var assertion in testCase.Assertions)
+            foreach (var assertion in testCase.Assert)
             {
-     
+
                 // 1. Load the expected state from the specified JSON file.
-                var testCaseDir = Path.GetDirectoryName(testCase.DefinitionFilePath);
+
                 var expectedDataPath = Path.Combine(testCaseDir, assertion.ExpectedDataFile);
-                var expectedStateJson = await File.ReadAllTextAsync(expectedDataPath);
+                var expectedStateJson = await File.ReadAllTextAsync(expectedDataPath, TestContext.Current.CancellationToken);
 
                 // 2. Get the actual state of the table AFTER the action.
                 var actualData = await _dbRepository.QueryAsync<object>(
@@ -108,21 +123,15 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
 
                 var rawAfterStateJson = JsonConvert.SerializeObject(actualData, Formatting.Indented);
 
-                string afterStateJson;
+                // 3. If a data map is provided, apply it to the actual state.
+                string afterStateJson = rawAfterStateJson;
 
-                // 3. If a data map is specified, transform the AFTER data into the "friendly" format.
-                if (!string.IsNullOrEmpty(assertion.DataMapFile))
-                {
-                    var mapPath = Path.Combine(testCaseDir, assertion.DataMapFile);
-                    var mapContent = await File.ReadAllTextAsync(mapPath);
-                    var dataMap = JsonConvert.DeserializeObject<DataMap>(mapContent);
+                var assertMap = await LoadDataMapAsync(testCaseDir, assertion.DataMapFile) ?? globalDataMap;
 
-                    afterStateJson = await _actualStateMapper.Map(rawAfterStateJson, dataMap, assertion.TableName);
-                }
-                else
+                if (assertMap != null)
                 {
-                    // If no map, we compare the raw database output.
-                    afterStateJson = rawAfterStateJson;
+                    afterStateJson =
+                        await _dataMapper.MapToFriendlyState(rawAfterStateJson, assertMap, assertion.TableName);
                 }
 
                 // 4. Use the factory to get the correct comparison strategy.
@@ -131,14 +140,14 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
                 // 5. Execute the comparison using the final, potentially resolved, expected state.
                 var areEqual = comparisonStrategy.Compare(
                     null, // beforeStateJson - not used in this simple assertion
-                    afterStateJson, 
-                    expectedStateJson, 
+                    afterStateJson,
+                    expectedStateJson,
                     assertion.ComparisonParameters
                 );
 
                 // 6. Use FluentAssertions for a clear pass/fail message.
                 areEqual.Should().BeTrue(
-                    $"comparison failed for table '{assertion.TableName}' using strategy '{assertion.ComparisonStrategy}' [ Actual '{afterStateJson}'<> Expected '{expectedStateJson}']" );
+                    $"comparison failed for table '{assertion.TableName}' using strategy '{assertion.ComparisonStrategy}' [ Actual '{afterStateJson}'<> Expected '{expectedStateJson}']");
 
             }
         }
@@ -147,13 +156,33 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             // FINAL CLEANUP: Optionally run specific teardown actions.
             // =================================================================
-            if (testCase.Teardowns != null)
-                foreach (var cleanupInstruction in testCase.Teardowns)
+            if (testCase.Teardown != null)
+                foreach (var cleanupInstruction in testCase.Teardown)
                 {
                     var strategy = _cleanupFactory.Create(cleanupInstruction.Strategy);
                     await strategy.ExecuteAsync(cleanupInstruction.Parameters);
                 }
         }
+    }
+
+    /// <summary>
+    /// A single, DRY helper method to load a data map file if the path is provided.
+    /// </summary>
+    private async Task<DataMap?> LoadDataMapAsync(string basePath, string? relativeMapPath)
+    {
+        if (string.IsNullOrEmpty(relativeMapPath))
+        {
+            return null;
+        }
+
+        var fullPath = Path.Combine(basePath, relativeMapPath);
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException($"The data map file was not found: {fullPath}");
+        }
+
+        var mapContent = await File.ReadAllTextAsync(fullPath);
+        return JsonConvert.DeserializeObject<DataMap>(mapContent);
     }
 
     /// <summary>

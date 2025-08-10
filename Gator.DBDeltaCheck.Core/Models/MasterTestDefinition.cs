@@ -4,18 +4,18 @@ namespace Gator.DBDeltaCheck.Core.Models;
 
 public class MasterTestDefinition
 {
-    /// <summary>
-    ///     A descriptive name for the test case, used for logging and test runner output.
-    /// </summary>
+
     public required string TestCaseName { get; set; }
+
+    [JsonProperty("DataMapFile")] public string? DataMapFile { get; set; }
 
     [JsonIgnore] public required string DefinitionFilePath { get; set; }
 
-    public required List<StepInstruction> Arrangements { get; set; }
+    public required List<StepInstruction> Arrange { get; set; }
 
     public required List<StepInstruction> Actions { get; set; }
 
-    public required List<ExpectedStateAssertion> Assertions { get; set; }
+    public required List<ExpectedStateAssertion> Assert { get; set; }
 
-    public required List<StepInstruction> Teardowns { get; set; }
+    public required List<StepInstruction> Teardown { get; set; }
 }
