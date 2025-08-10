@@ -1,7 +1,7 @@
 {
-  "TestCaseName": "Place An Order",
+  "TestCaseName": "Place An Order and Verify Hierarchy",
   "DataMapFile": "maps/ecommerce.json",
-  "Arrangements": [
+  "Arrange": [
     {
       "Strategy": "JsonFileSeed",
       "Parameters": {
@@ -13,35 +13,59 @@
     {
       "Strategy": "HierarchicalSeed",
       "Parameters": {
-        "rootTable": "Customer",
-        "dataFile": "data/new_customer_order_map.json"
+        "dataFile": "data/new_customer_order_map.json",
+        "Outputs": [
+          {
+            "VariableName": "newOrderId",
+            "Source": {
+              "FromTable": "Orders",
+              "SelectColumn": "OrderId",
+              "OrderByColumn": "OrderId",
+              "OrderDirection": "DESC"
+            }
+          }
+        ]
       }
     }
   ],
-  "Actions": [
+  "Act": {
+    "Strategy": "ApiCall",
+    "Parameters": {
+      "Method": "POST",
+      "Endpoint": "/api/orders",
+      "Payload": {
+        "CustomerId": 1,
+        "OrderDate": "2025-08-10T15:30:00Z",
+        "TotalAmount": 1274.98,
+        "OrderStatusId": 2,
+        "OrderItems": [
+          {
+            "ProductId": 101,
+            "Quantity": 1,
+            "UnitPrice": 1249.99
+          },
+          {
+            "ProductId": 102,
+            "Quantity": 2,
+            "UnitPrice": 12.49
+          }
+        ]
+      }
+    }
+  },
+  "Assert": [
     {
-      "Strategy": "ApiCall",
+      "Strategy": "HierarchicalCompare",
       "Parameters": {
-        "Method": "GET",
-        "Endpoint": "/api/orders"
+        "RootEntity": "Order",
+        "FindById": "{newOrderId}",
+        "ExpectedDataFile": "expected/full_order_expected.json",
+        "IncludePaths": [
+          "Customer",
+          "OrderStatus",
+          "OrderItems.Product"
+        ]
       }
-    }
-  ],
-  "Assertions": [
-    {
-      "TableName": "Customers",
-      "ExpectedDataFile": "expected/customer_expected.json",
-      "ComparisonStrategy": "IgnoreOrder"
-    },
-    {
-      "TableName": "Orders",
-      "ExpectedDataFile": "expected/order_expected_map.json",
-      "ComparisonStrategy": "IgnoreOrder"
-    },
-    {
-      "TableName": "OrderItems",
-      "ExpectedDataFile": "expected/orderitems_expected_map.json",
-      "ComparisonStrategy": "IgnoreOrder"
     }
   ]
 }

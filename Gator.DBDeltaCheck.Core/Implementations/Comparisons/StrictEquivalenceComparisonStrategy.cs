@@ -1,4 +1,5 @@
 ﻿using Gator.DBDeltaCheck.Core.Abstractions;
+using Gator.DBDeltaCheck.Core.Models;
 using Newtonsoft.Json.Linq;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Comparisons;
@@ -15,5 +16,10 @@ public class StrictEquivalenceComparisonStrategy : IComparisonStrategy
         var expectedToken = JToken.Parse(expectedStateJson);
 
         return JToken.DeepEquals(afterToken, expectedToken);
+    }
+
+    Task<bool> IComparisonStrategy.ExecuteAsync(JObject parameters, Dictionary<string, object> context, DataMap? dataMap)
+    {
+        throw new NotImplementedException();
     }
 }

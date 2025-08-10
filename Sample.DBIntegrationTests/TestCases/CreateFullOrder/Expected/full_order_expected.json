@@ -1,0 +1,30 @@
+{
+  "OrderDate": "2025-08-10T15:30:00Z",
+  "TotalAmount": 1274.98,
+  "Customer": {
+    "FirstName": "Alice",
+    "LastName": "Williams",
+    "Email": "alice.williams@example.com"
+  },
+  "OrderStatus": "Processing",
+  "OrderItems": [
+    {
+      "Quantity": 1,
+      "UnitPrice": 1249.99,
+      "Product": {
+        "Name": "Laptop",
+        "Description": "A powerful work laptop",
+        "Price": 1249.99
+      }
+    },
+    {
+      "Quantity": 2,
+      "UnitPrice": 12.49,
+      "Product": {
+        "Name": "Mouse",
+        "Description": "A wireless optical mouse",
+        "Price": 12.49
+      }
+    }
+  ]
+}

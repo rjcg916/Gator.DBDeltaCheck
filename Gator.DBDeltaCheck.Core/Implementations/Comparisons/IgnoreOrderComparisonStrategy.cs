@@ -1,6 +1,8 @@
 ﻿using FluentAssertions;
 using Gator.DBDeltaCheck.Core.Abstractions;
+using Gator.DBDeltaCheck.Core.Models;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Comparisons;
 
@@ -24,5 +26,10 @@ public class IgnoreOrderComparisonStrategy : IComparisonStrategy
         {
             return false;
         }
+    }
+
+    Task<bool> IComparisonStrategy.ExecuteAsync(JObject parameters, Dictionary<string, object> context, DataMap? dataMap)
+    {
+        throw new NotImplementedException();
     }
 }
