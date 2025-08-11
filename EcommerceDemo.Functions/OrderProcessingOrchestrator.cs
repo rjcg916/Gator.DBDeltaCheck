@@ -41,11 +41,11 @@ public class OrderProcessingOrchestrator
     }
 
 
-    [Function(nameof(RunOrchestrator))]
-    public async Task<string> RunOrchestrator(
+    [Function(nameof(OrderOrchestrator))]
+    public async Task<string> OrderOrchestrator(
         [OrchestrationTrigger] TaskOrchestrationContext context)
     {
-        var logger = context.CreateReplaySafeLogger(nameof(RunOrchestrator));
+        var logger = context.CreateReplaySafeLogger(nameof(OrderOrchestrator));
         var payload = context.GetInput<OrchestrationPayload>();
 
         logger.LogInformation("Orchestration started for Customer ID: {CustomerId}", payload.CustomerId);

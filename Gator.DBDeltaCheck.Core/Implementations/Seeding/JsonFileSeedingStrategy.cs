@@ -43,5 +43,27 @@ public class JsonFileSeedingStrategy : ISetupStrategy
 
         foreach (var record in records)
             await _repository.InsertRecordAsync(tableName, record, allowIdentityInsert);
+
+        if (parameters.TryGetValue("Outputs", out var outputsToken) && outputsToken is JArray outputsArray)
+        {
+            await ProcessOutputs(outputsArray, testContext);
+        }
+    }
+
+    private async Task ProcessOutputs(JArray outputsArray, Dictionary<string, object> testContext)
+    {
+        var outputInstructions = outputsArray.ToObject<List<OutputInstruction>>();
+        if (outputInstructions == null) return;
+
+        foreach (var instruction in outputInstructions)
+        {
+            var source = instruction.Source;
+            var sql = $"SELECT TOP 1 {source.SelectColumn} FROM {source.FromTable} ORDER BY {source.OrderByColumn} {source.OrderDirection ?? "DESC"}";
+            var outputValue = await _repository.ExecuteScalarAsync<object>(sql);
+            if (outputValue != null)
+            {
+                testContext[instruction.VariableName] = outputValue;
+            }
+        }
     }
 }

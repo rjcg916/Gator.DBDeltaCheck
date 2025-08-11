@@ -31,7 +31,7 @@
     {
       "Strategy": "DurableFunction",
       "Parameters": {
-        "OrchestratorName": "RunOrchestrator",
+        "OrchestratorName": "OrderOrchestrator",
         "Payload": {
           "CustomerId": "{newCustomerId}",
           "NewEmail": "alice.smith@example.com"

@@ -48,7 +48,7 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
 
         if (parameters.TryGetValue("Outputs", out var outputsToken) && outputsToken is JArray outputsArray)
         {
-            await ProcessOutputsAsync(outputsArray, testContext);
+            await ProcessOutputs(outputsArray, testContext);
         }
     }
 
@@ -128,8 +128,7 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
 
         return finalData;
     }
-
-    private async Task ProcessOutputsAsync(JArray outputsArray, Dictionary<string, object> testContext)
+    private async Task ProcessOutputs(JArray outputsArray, Dictionary<string, object> testContext)
     {
         var outputInstructions = outputsArray.ToObject<List<OutputInstruction>>();
         if (outputInstructions == null) return;

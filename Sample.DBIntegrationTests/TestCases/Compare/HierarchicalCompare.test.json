@@ -1,6 +1,6 @@
 {
   "TestCaseName": "Compare: HierarchicalCompare",
-  "DataMapFile": "maps/ecommerce.json",
+  "DataMapFile": "map/ecommerce.json",
   "Arrange": [
     {
       "Strategy": "JsonFileSeed",
