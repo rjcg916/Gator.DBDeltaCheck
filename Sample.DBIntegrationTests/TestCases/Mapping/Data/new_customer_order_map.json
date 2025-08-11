@@ -1,0 +1,29 @@
+{
+  "rootTable": "Customers",
+  "data": [
+    {
+      "FirstName": "Alice",
+      "LastName": "Williams",
+      "Email": "alice.williams@example.com",
+      "Orders": [
+        {
+          "OrderDate": "2025-07-31T10:00:00Z",
+          "TotalAmount": 1274.98,
+          "OrderStatus": "Processing",
+          "OrderItems": [
+            {
+              "Quantity": 1,
+              "UnitPrice": 1249.99,
+              "Product": "Laptop"              
+            },
+            {
+              "Quantity": 2,
+              "UnitPrice": 12.49,
+              "Product":  "Mouse"              
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "TestCaseName": "Place An Order",
+  "TestCaseName": "Seed An Order",
   "Arrangements": [
     {
       "Strategy": "JsonFileSeed",

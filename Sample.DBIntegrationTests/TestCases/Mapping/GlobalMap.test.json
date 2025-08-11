@@ -1,0 +1,47 @@
+{
+  "TestCaseName": "Place An Order",
+  "DataMapFile": "maps/ecommerce.json",
+  "Arrangements": [
+    {
+      "Strategy": "JsonFileSeed",
+      "Parameters": {
+        "table": "Products",
+        "dataFile": "data/products.json",
+        "allowIdentityInsert": true
+      }
+    },
+    {
+      "Strategy": "HierarchicalSeed",
+      "Parameters": {
+        "rootTable": "Customer",
+        "dataFile": "data/new_customer_order_map.json"
+      }
+    }
+  ],
+  "Actions": [
+    {
+      "Strategy": "ApiCall",
+      "Parameters": {
+        "Method": "GET",
+        "Endpoint": "/api/orders"
+      }
+    }
+  ],
+  "Assertions": [
+    {
+      "TableName": "Customers",
+      "ExpectedDataFile": "expected/customer_expected.json",
+      "ComparisonStrategy": "IgnoreOrder"
+    },
+    {
+      "TableName": "Orders",
+      "ExpectedDataFile": "expected/order_expected_map.json",
+      "ComparisonStrategy": "IgnoreOrder"
+    },
+    {
+      "TableName": "OrderItems",
+      "ExpectedDataFile": "expected/orderitems_expected_map.json",
+      "ComparisonStrategy": "IgnoreOrder"
+    }
+  ]
+}

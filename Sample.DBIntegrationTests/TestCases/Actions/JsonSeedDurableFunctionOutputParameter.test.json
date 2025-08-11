@@ -5,7 +5,18 @@
       "Strategy": "JsonFileSeed",
       "Parameters": {
         "table": "Customers",
-        "dataFile": "data\\new-customers.json"
+        "dataFile": "data\\new-customers.json",
+        "Outputs": [
+          {
+            "VariableName": "newCustomerId",
+            "Source": {
+              "FromTable": "Customers",
+              "SelectColumn": "CustomerId",
+              "OrderByColumn": "CustomerId",
+              "OrderDirection": "DESC"
+            }
+          }
+        ]
       }
     }
   ],

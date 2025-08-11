@@ -13,7 +13,7 @@
     {
       "Strategy": "HierarchicalSeed",
       "Parameters": {
-        "dataFile": "data/new_customer_order_map.json",
+        "dataFile": "data/new_customer_order.json",
         "Outputs": [
           {
             "VariableName": "newOrderId",
@@ -28,38 +28,22 @@
       }
     }
   ],
-  "Act": {
-    "Strategy": "ApiCall",
-    "Parameters": {
-      "Method": "POST",
-      "Endpoint": "/api/orders",
-      "Payload": {
-        "CustomerId": 1,
-        "OrderDate": "2025-08-10T15:30:00Z",
-        "TotalAmount": 1274.98,
-        "OrderStatusId": 2,
-        "OrderItems": [
-          {
-            "ProductId": 101,
-            "Quantity": 1,
-            "UnitPrice": 1249.99
-          },
-          {
-            "ProductId": 102,
-            "Quantity": 2,
-            "UnitPrice": 12.49
-          }
-        ]
+  "Actions": [
+    {
+      "Strategy": "ApiCall",
+      "Parameters": {
+        "Method": "GET",
+        "Endpoint": "/api/orders"
       }
     }
-  },
+  ],
   "Assert": [
     {
       "Strategy": "HierarchicalCompare",
       "Parameters": {
         "RootEntity": "Order",
         "FindById": "{newOrderId}",
-        "ExpectedDataFile": "expected/full_order_expected.json",
+        "ExpectedDataFile": "expected/full_order.json",
         "IncludePaths": [
           "Customer",
           "OrderStatus",
