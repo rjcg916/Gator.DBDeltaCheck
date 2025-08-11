@@ -52,7 +52,7 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
         }
     }
 
-    private async Task ProcessToken(string tableName, JToken token, Dictionary<string, object> parentKeys, bool allowIdentityInsert, DataMap dataMap)
+    private async Task ProcessToken(string tableName, JToken token, Dictionary<string, object> parentKeys, bool allowIdentityInsert, DataMap? dataMap)
     {
         if (token is JArray array)
         {
@@ -66,7 +66,7 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
             await ProcessRecord(tableName, record, parentKeys, allowIdentityInsert, dataMap);
         }
     }
-    private async Task ProcessRecord(string tableName, JObject record, Dictionary<string, object> parentKeys, bool allowIdentityInsert, DataMap dataMap)
+    private async Task ProcessRecord(string tableName, JObject record, Dictionary<string, object> parentKeys, bool allowIdentityInsert, DataMap? dataMap)
     {
         var recordData = record.ToObject<Dictionary<string, JToken>>()!;
 
@@ -109,7 +109,7 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
         string tableName,
         Dictionary<string, JToken> recordData,
         Dictionary<string, object> parentKeys,
-        DataMap dataMap)
+        DataMap? dataMap)
     {
         // 1. Convert the current record's data into a temporary JObject.
         var tempRecord = JObject.FromObject(recordData);

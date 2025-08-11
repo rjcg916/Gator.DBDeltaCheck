@@ -1,6 +1,6 @@
 {
-  "TestCaseName": "Add new customers using Hiearchical seeding",
-  "Arrangements": [
+  "TestCaseName": "Action: Durable Function / Hierarchical Seed",
+  "Arrange": [
     {
       "Strategy": "JsonFileSeed",
       "Parameters": {
@@ -41,7 +41,7 @@
       }
     }
   ],
-  "Assertions": [
+  "Assert": [
     {
       "TableName": "Customers",
       "ExpectedDataFile": "expected\\customer-email-changed.json",

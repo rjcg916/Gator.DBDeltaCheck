@@ -1,6 +1,6 @@
 {
-  "TestCaseName": "Seed An Order",
-  "Arrangements": [
+  "TestCaseName": "LocalMap",
+  "Arrange": [
     {
       "Strategy": "JsonFileSeed",
       "Parameters": {
@@ -27,7 +27,7 @@
       }
     }
   ],
-  "Assertions": [
+  "Assert": [
     {
       "TableName": "Customers",
       "ExpectedDataFile": "expected/customer_expected.json",

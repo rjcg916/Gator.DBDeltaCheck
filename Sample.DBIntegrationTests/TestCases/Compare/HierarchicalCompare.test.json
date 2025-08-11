@@ -1,5 +1,5 @@
 {
-  "TestCaseName": "Place An Order and Verify Hierarchy",
+  "TestCaseName": "Compare: HierarchicalCompare",
   "DataMapFile": "maps/ecommerce.json",
   "Arrange": [
     {

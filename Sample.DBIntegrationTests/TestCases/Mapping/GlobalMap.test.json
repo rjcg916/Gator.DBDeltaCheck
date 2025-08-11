@@ -1,7 +1,7 @@
 {
-  "TestCaseName": "Place An Order",
-  "DataMapFile": "maps/ecommerce.json",
-  "Arrangements": [
+  "TestCaseName": "GlobalMap",
+  "DataMapFile": "map/ecommerce.json",
+  "Arrange": [
     {
       "Strategy": "JsonFileSeed",
       "Parameters": {
@@ -27,7 +27,7 @@
       }
     }
   ],
-  "Assertions": [
+  "Assert": [
     {
       "TableName": "Customers",
       "ExpectedDataFile": "expected/customer_expected.json",

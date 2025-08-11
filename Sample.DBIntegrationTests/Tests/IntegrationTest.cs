@@ -51,6 +51,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
         var testContext = new Dictionary<string, object>();
         var testCaseDir = Path.GetDirectoryName(testCase.DefinitionFilePath);
 
+        // if provided, read test/global data map
         DataMap? globalDataMap = null;
         if (!string.IsNullOrEmpty(testCase.DataMapFile))
         {
@@ -76,20 +77,20 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             foreach (var setupInstruction in testCase.Arrange)
             {
-                var strategy = _setupFactory.Create(setupInstruction.Strategy);
-
+  
                 // Add the base path to the parameters so the strategy can find relative files.
                 setupInstruction.Parameters["_basePath"] = testCaseDir;
 
                 var stepMap = globalDataMap;
-                var localMapPath = setupInstruction.Parameters["dataMapFile"]?.Value<string>();
 
-                // If a local override is defined in this step's parameters, load it.
+                // If a local map override is defined in this step's parameters, load it.
+                var localMapPath = setupInstruction.Parameters["dataMapFile"]?.Value<string>(); 
                 if (!string.IsNullOrEmpty(localMapPath))
                 {
                     stepMap = await LoadDataMapAsync(testCaseDir, localMapPath);
                 }
 
+                var strategy = _setupFactory.Create(setupInstruction.Strategy);
                 await strategy.ExecuteAsync(setupInstruction.Parameters, testContext, stepMap);
             }
 
@@ -166,7 +167,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
     }
 
     /// <summary>
-    /// A single, DRY helper method to load a data map file if the path is provided.
+    /// A helper method to load a data map file if the path is provided.
     /// </summary>
     private async Task<DataMap?> LoadDataMapAsync(string basePath, string? relativeMapPath)
     {
@@ -186,7 +187,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
     }
 
     /// <summary>
-    ///     A helper method to recursively scan a JToken for string values
+    ///     Recursively scan a JToken for string values
     ///     that match the token format "{key}" and replace them with values
     ///     from the test context.
     /// </summary>
