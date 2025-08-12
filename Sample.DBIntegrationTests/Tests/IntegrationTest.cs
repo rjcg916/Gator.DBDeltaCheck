@@ -15,7 +15,8 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
 {
     private readonly IActionStrategyFactory _actionFactory;
     private readonly ICleanupStrategyFactory _cleanupFactory;
-    private readonly IComparisonStrategyFactory _comparisonFactory;
+    private readonly IDataComparisonRuleFactory _comparisonFactory;
+    private readonly IAssertionStrategyFactory _assertionFactory;   
 
     // Core services needed for test execution
     private readonly IDatabaseRepository _dbRepository;
@@ -34,7 +35,8 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
         // Resolve services from the fixture's ServiceProvider
         _setupFactory = _fixture.GetService<ISetupStrategyFactory>(testOutputHelper);
         _actionFactory = _fixture.GetService<IActionStrategyFactory>(testOutputHelper);
-        _comparisonFactory = _fixture.GetService<IComparisonStrategyFactory>(testOutputHelper);
+        _comparisonFactory = _fixture.GetService<IDataComparisonRuleFactory>(testOutputHelper);
+        _assertionFactory = _fixture.GetService<IAssertionStrategyFactory>(testOutputHelper);
         _cleanupFactory = _fixture.GetService<ICleanupStrategyFactory>(testOutputHelper);
 
         _dbRepository = _fixture.GetService<IDatabaseRepository>(testOutputHelper);
@@ -49,7 +51,12 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
     {
 
         var testContext = new Dictionary<string, object>();
+
         var testCaseDir = Path.GetDirectoryName(testCase.DefinitionFilePath);
+        if (testCaseDir == null)
+        {
+            throw new InvalidOperationException("Test case definition file path is invalid.");
+        }
 
         // if provided, read test/global data map
         DataMap? globalDataMap = null;
@@ -90,7 +97,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
                     stepMap = await LoadDataMapAsync(testCaseDir, localMapPath);
                 }
 
-                var strategy = _setupFactory.Create(setupInstruction.Strategy);
+                var strategy = _setupFactory.GetStrategy(setupInstruction.Strategy);
                 await strategy.ExecuteAsync(setupInstruction.Parameters, testContext, stepMap);
             }
 
@@ -112,44 +119,17 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             foreach (var assertion in testCase.Assert)
             {
 
-                // 1. Load the expected state from the specified JSON file.
+                // 1. Get the correct high-level strategy (e.g., "Flat" or "Hierarchical").
+                var strategy = _assertionFactory.GetStrategy(assertion.Strategy);
 
-                var expectedDataPath = Path.Combine(testCaseDir, assertion.ExpectedDataFile);
-                var expectedStateJson = await File.ReadAllTextAsync(expectedDataPath, TestContext.Current.CancellationToken);
-
-                // 2. Get the actual state of the table AFTER the action.
-                var actualData = await _dbRepository.QueryAsync<object>(
-                    $"SELECT * FROM {assertion.TableName}"
+                // 2. Execute the strategy, passing all necessary context.
+                // The strategy itself now handles all the details of querying, mapping, and comparing.
+                await strategy.AssertState(
+                    assertion.Parameters,
+                    testContext,
+                    globalDataMap,
+                    testCaseDir
                 );
-
-                var rawAfterStateJson = JsonConvert.SerializeObject(actualData, Formatting.Indented);
-
-                // 3. If a data map is provided, apply it to the actual state.
-                string afterStateJson = rawAfterStateJson;
-
-                var assertMap = await LoadDataMapAsync(testCaseDir, assertion.DataMapFile) ?? globalDataMap;
-
-                if (assertMap != null)
-                {
-                    afterStateJson =
-                        await _dataMapper.MapToFriendlyState(rawAfterStateJson, assertMap, assertion.TableName);
-                }
-
-                // 4. Use the factory to get the correct comparison strategy.
-                var comparisonStrategy = _comparisonFactory.GetStrategy(assertion.ComparisonStrategy);
-
-                // 5. Execute the comparison using the final, potentially resolved, expected state.
-                var areEqual = comparisonStrategy.Compare(
-                    null, // beforeStateJson - not used in this simple assertion
-                    afterStateJson,
-                    expectedStateJson,
-                    assertion.ComparisonParameters
-                );
-
-                // 6. Use FluentAssertions for a clear pass/fail message.
-                areEqual.Should().BeTrue(
-                    $"comparison failed for table '{assertion.TableName}' using strategy '{assertion.ComparisonStrategy}' [ Actual '{afterStateJson}'<> Expected '{expectedStateJson}']");
-
             }
         }
         finally
@@ -160,7 +140,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             if (testCase.Teardown != null)
                 foreach (var cleanupInstruction in testCase.Teardown)
                 {
-                    var strategy = _cleanupFactory.Create(cleanupInstruction.Strategy);
+                    var strategy = _cleanupFactory.GetStrategy(cleanupInstruction.Strategy);
                     await strategy.ExecuteAsync(cleanupInstruction.Parameters);
                 }
         }

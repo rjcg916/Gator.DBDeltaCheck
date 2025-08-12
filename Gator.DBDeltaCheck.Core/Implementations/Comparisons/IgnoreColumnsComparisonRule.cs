@@ -6,11 +6,11 @@ using Newtonsoft.Json.Linq;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Comparisons;
 
-public class IgnoreColumnsComparisonStrategy : IComparisonStrategy
+public class IgnoreColumnsComparisonRule : IDataComparisonRule
 {
     public string StrategyName => "IgnoreColumns";
 
-    public bool Compare(string beforeStateJson, string afterStateJson, string expectedStateJson, object? parameters)
+    public bool Compare(string afterStateJson, string expectedStateJson, object? parameters)
     {
         var afterList = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(afterStateJson);
         var expectedList = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(expectedStateJson);
@@ -20,7 +20,7 @@ public class IgnoreColumnsComparisonStrategy : IComparisonStrategy
 
         if (columnsToIgnore == null || !columnsToIgnore.Any())
             // If no columns are specified, behave like IgnoreOrder
-            return new IgnoreOrderComparisonStrategy().Compare(beforeStateJson, afterStateJson, expectedStateJson,
+            return new IgnoreOrderComparisonRule().Compare(afterStateJson, expectedStateJson,
                 parameters);
 
         // Remove the ignored columns from both datasets
@@ -38,10 +38,6 @@ public class IgnoreColumnsComparisonStrategy : IComparisonStrategy
         }
     }
 
-    Task<bool> IComparisonStrategy.ExecuteAsync(JObject parameters, Dictionary<string, object> context, DataMap? dataMap)
-    {
-        throw new NotImplementedException();
-    }
 
     private List<Dictionary<string, object>> RemoveColumns(List<Dictionary<string, object>>? data,
         List<string> columnsToRemove)

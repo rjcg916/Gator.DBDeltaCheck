@@ -14,8 +14,8 @@ public class ExpectedStateAssertion
     public required string ExpectedDataFile { get; set; }
     [JsonProperty("DataMapFile")]
     public string? DataMapFile { get; set; }
-    [JsonProperty("ComparisonStrategy")] 
-    public string ComparisonStrategy { get; set; } = "IgnoreOrder";
-    [JsonProperty("ComparisonParameters")] 
-    public JToken? ComparisonParameters { get; set; }
+    [JsonProperty("AssertionStrategy")] 
+    public string Strategy { get; set; } = "Flat";
+    [JsonProperty("AssertionParameters")] 
+    public JObject? Parameters { get; set; }
 }

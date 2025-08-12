@@ -4,11 +4,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Gator.DBDeltaCheck.Core.ComparisonStrategies;
 
-public class ComparisonStrategyFactory : IComparisonStrategyFactory
+public class AssertionStrategyFactory : IAssertionStrategyFactory
 {
     private readonly IServiceProvider _serviceProvider;
 
-    public ComparisonStrategyFactory(IServiceProvider serviceProvider)
+    public AssertionStrategyFactory(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
     }
@@ -16,16 +16,16 @@ public class ComparisonStrategyFactory : IComparisonStrategyFactory
     /// <summary>
     ///     Gets an instance of a comparison strategy based on its registered name.
     /// </summary>
-    public IComparisonStrategy GetStrategy(string strategyName)
+    public IAssertionStrategy GetStrategy(string strategyName)
     {
-        var strategies = _serviceProvider.GetServices<IComparisonStrategy>();
+        var strategies = _serviceProvider.GetServices<IAssertionStrategy>();
 
         var strategy = strategies.FirstOrDefault(s =>
             s.StrategyName.Equals(strategyName, StringComparison.OrdinalIgnoreCase));
 
         if (strategy == null)
             throw new ArgumentException(
-                $"No comparison strategy with the name '{strategyName}' has been registered in the dependency injection container.");
+                $"No assertion strategy with the name '{strategyName}' has been registered in the dependency injection container.");
 
         return strategy;
     }

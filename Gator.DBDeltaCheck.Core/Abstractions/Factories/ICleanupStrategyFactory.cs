@@ -7,5 +7,5 @@ public interface ICleanupStrategyFactory
     /// </summary>
     /// <param name="strategyName">The unique name of the strategy (e.g., "Respawn").</param>
     /// <returns>An instance of the requested ICleanupStrategy.</returns>
-    ICleanupStrategy Create(string strategyName);
+    ICleanupStrategy GetStrategy(string strategyName);
 }

@@ -2,32 +2,30 @@
 using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Gator.DBDeltaCheck.Core.Implementations.Factories;
+namespace Gator.DBDeltaCheck.Core.ComparisonStrategies;
 
-public class SetupStrategyFactory : ISetupStrategyFactory
+public class DataComparisonRuleFactory : IDataComparisonRuleFactory
 {
     private readonly IServiceProvider _serviceProvider;
 
-    public SetupStrategyFactory(IServiceProvider serviceProvider)
+    public DataComparisonRuleFactory(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
     }
 
     /// <summary>
-    ///     Creates an instance of a setup strategy based on its registered name.
+    ///     Gets an instance of a comparison strategy based on its registered name.
     /// </summary>
-    public ISetupStrategy GetStrategy(string strategyName)
+    public IDataComparisonRule GetStrategy(string strategyName)
     {
-        var strategies = _serviceProvider.GetServices<ISetupStrategy>();
-
+        var strategies = _serviceProvider.GetServices<IDataComparisonRule>();
 
         var strategy = strategies.FirstOrDefault(s =>
             s.StrategyName.Equals(strategyName, StringComparison.OrdinalIgnoreCase));
 
-
         if (strategy == null)
             throw new ArgumentException(
-                $"No setup strategy with the name '{strategyName}' has been registered in the dependency injection container.");
+                $"No assertion strategy with the name '{strategyName}' has been registered in the dependency injection container.");
 
         return strategy;
     }

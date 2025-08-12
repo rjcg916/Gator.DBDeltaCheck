@@ -16,7 +16,7 @@ public class CleanupStrategyFactory : ICleanupStrategyFactory
     /// <summary>
     ///     Creates an instance of a cleanup strategy based on its registered name.
     /// </summary>
-    public ICleanupStrategy Create(string strategyName)
+    public ICleanupStrategy GetStrategy(string strategyName)
     {
         // 1. Get all registered cleanup strategies.
         var strategies = _serviceProvider.GetServices<ICleanupStrategy>();

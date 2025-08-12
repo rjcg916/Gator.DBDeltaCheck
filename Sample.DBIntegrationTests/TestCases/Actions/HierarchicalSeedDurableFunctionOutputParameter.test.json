@@ -43,10 +43,15 @@
   ],
   "Assert": [
     {
-      "TableName": "Customers",
-      "ExpectedDataFile": "expected\\customer-email-changed.json",
-      "ComparisonStrategy": "IgnoreColumns",
-      "ComparisonParameters": [ "CustomerId" ]
+      "Strategy": "Hierarchical",
+      "Parameters": {
+        "TableName": "Customers",
+        "ExpectedDataFile": "expected\\customer-email-changed.json",
+        "ComparisonRule": {
+          "Name" : "IgnoreColumns",
+          "Parameters": [ "CustomerId" ]
+        }
+      }
     }
   ]
 }

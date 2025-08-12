@@ -29,19 +29,28 @@
   ],
   "Assert": [
     {
-      "TableName": "Customers",
-      "ExpectedDataFile": "expected/customer_expected.json",
-      "ComparisonStrategy": "IgnoreOrder"
+      "Strategy": "SingleLevel",
+      "Parameters": {
+        "TableName": "Customers",
+        "ExpectedDataFile": "expected/customer_expected.json",
+        "ComparisonRule": { "Name": "IgnoreOrder" }
+        }
     },
     {
-      "TableName": "Orders",
-      "ExpectedDataFile": "expected/order_expected_map.json",
-      "ComparisonStrategy": "IgnoreOrder"
+      "Strategy": "SingleLevel",
+      "Parameters": {
+        "TableName": "Orders",
+        "ExpectedDataFile": "expected/order_expected_map.json",
+        "ComparisonRule": { "Name": "IgnoreOrder" }
+      }
     },
     {
-      "TableName": "OrderItems",
-      "ExpectedDataFile": "expected/orderitems_expected_map.json",
-      "ComparisonStrategy": "IgnoreOrder"
+      "Strategy": "SingleLevel",
+      "Parameters": {
+        "TableName": "OrderItems",
+        "ExpectedDataFile": "expected/orderitems_expected_map.json",
+        "ComparisonRule": { "Name": "IgnoreOrder" }
+      }
     }
   ]
 }

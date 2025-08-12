@@ -1,4 +1,6 @@
-﻿using Gator.DBDeltaCheck.Core.Abstractions;
+﻿using FluentAssertions;
+using Gator.DBDeltaCheck.Core.Abstractions;
+using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 using Gator.DBDeltaCheck.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
@@ -8,65 +10,46 @@ using System.Reflection;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Comparisons;
 
-public class HierarchicalComparisonStrategy : IComparisonStrategy
+public class HierarchicalAssertionStrategy : IAssertionStrategy
 {
-    public string StrategyName => "HierarchicalCompare";
+    public string StrategyName => "Hierarchical";
 
     private readonly DbContext _dbContext;
     private readonly IDataMapper _dataMapper;
+    private readonly IDataComparisonRuleFactory _ruleFactory; // Depends on the rule factory
 
-    public HierarchicalComparisonStrategy(DbContext dbContext, IDataMapper dataMapper)
+    public HierarchicalAssertionStrategy(DbContext dbContext, IDataMapper dataMapper, IDataComparisonRuleFactory ruleFactory)
     {
         _dbContext = dbContext;
         _dataMapper = dataMapper;
+        _ruleFactory = ruleFactory;
     }
 
-
-    public bool Compare(string? before, string after, string expected, object parameters)
-    {
-        throw new System.NotImplementedException("This strategy uses the ExecuteAsync method.");
-    }
-
-    public async Task<bool> ExecuteAsync(JObject parameters, Dictionary<string, object> context, DataMap? dataMap)
+    public async Task AssertState(JObject parameters, Dictionary<string, object> context, DataMap? dataMap, string basePath)
     {
         // 1. Get all parameters from the JSON.
-        var rootEntityName = parameters["RootEntity"]?.Value<string>()
-            ?? throw new System.ArgumentException("'RootEntity' is missing.");
-
-        var findByIdToken = parameters["FindById"]?.Value<string>()
-            ?? throw new System.ArgumentException("'FindById' is missing.");
-
-        var expectedDataFile = parameters["ExpectedDataFile"]?.Value<string>()
-            ?? throw new System.ArgumentException("'ExpectedDataFile' is missing.");
-
+        var rootEntityName = parameters["RootEntity"]?.Value<string>() ?? throw new ArgumentException("'RootEntity' is missing.");
+        var findByIdToken = parameters["FindById"]?.Value<string>() ?? throw new ArgumentException("'FindById' is missing.");
+        var expectedDataFile = parameters["ExpectedDataFile"]?.Value<string>() ?? throw new ArgumentException("'ExpectedDataFile' is missing.");
         var includePaths = parameters["IncludePaths"]?.ToObject<List<string>>() ?? new List<string>();
-        var basePath = parameters["_basePath"]?.Value<string>() ?? Directory.GetCurrentDirectory();
 
-        // 2. Resolve the ID from the test context.
+        var comparisonRuleInfo = parameters["ComparisonRule"]?.ToObject<ComparisonRuleInfo>() ?? new ComparisonRuleInfo();
+
+        // 2. Perform the "deep query" to get the raw actual object.
         var idToFind = context[findByIdToken.Trim('{', '}')];
-
-        // 3. Perform the "deep query" to get the raw actual object from the database.
         var rawActualObject = await QueryHierarchy(rootEntityName, idToFind, includePaths);
-        if (rawActualObject == null)
-        {
-            throw new System.InvalidOperationException($"QueryHierarchy could not find an entity of type '{rootEntityName}' with ID '{idToFind}'.");
-        }
         var rawActualJson = JsonConvert.SerializeObject(rawActualObject);
 
-        // 4. Load the "friendly" expected data file.
+        // 3. Load files and map the actual state to a "friendly" format.
         var expectedDataPath = Path.Combine(basePath, expectedDataFile);
         var expectedStateJson = await File.ReadAllTextAsync(expectedDataPath);
+        var mappedActualJson = await _dataMapper.MapToFriendlyState(rawActualJson, dataMap ?? new DataMap() { Tables = new List<TableMap>()}, rootEntityName);
 
-        // 5. Use the mapper to transform the raw database object into a "friendly" format.
-        // If no map is provided, it will just return the raw JSON.
-        var effectiveDataMap = dataMap ?? new DataMap { Tables = new List<TableMap>() };
-        var mappedActualJson = await _dataMapper.MapToFriendlyState(rawActualJson, effectiveDataMap, rootEntityName);
+        // 4. Get the correct comparison rule and execute it.
+        var comparisonRule = _ruleFactory.GetStrategy(comparisonRuleInfo.Name);
+        var areEqual = comparisonRule.Compare(mappedActualJson, expectedStateJson, comparisonRuleInfo.Parameters);
 
-        // 6. Compare the final, friendly JSON objects.
-        var expectedToken = JToken.Parse(expectedStateJson);
-        var actualToken = JToken.Parse(mappedActualJson);
-
-        return JToken.DeepEquals(expectedToken, actualToken);
+        areEqual.Should().BeTrue($"Hierarchical comparison failed for {rootEntityName} with ID {idToFind}.");
     }
 
     private async Task<object?> QueryHierarchy(string rootEntityName, object id, List<string> includePaths)
@@ -123,5 +106,11 @@ public class HierarchicalComparisonStrategy : IComparisonStrategy
         // 6. Get the result from the completed task.
         var result = ((dynamic)task).Result;
         return result;
+    }
+
+    internal class ComparisonRuleInfo
+    {
+        public string Name { get; set; } = "IgnoreOrder";
+        public JToken? Parameters { get; set; }
     }
 }

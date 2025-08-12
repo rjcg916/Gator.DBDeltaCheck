@@ -4,6 +4,7 @@ using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 using Gator.DBDeltaCheck.Core.ComparisonStrategies;
 using Gator.DBDeltaCheck.Core.Implementations;
 using Gator.DBDeltaCheck.Core.Implementations.Actions;
+using Gator.DBDeltaCheck.Core.Implementations.Assertions;
 using Gator.DBDeltaCheck.Core.Implementations.Cleanup;
 using Gator.DBDeltaCheck.Core.Implementations.Comparisons;
 using Gator.DBDeltaCheck.Core.Implementations.Factories;
@@ -33,7 +34,8 @@ public class DependencyInjectionFixture : TestBedFixture
     {
         services.AddSingleton<IActionStrategyFactory, ActionStrategyFactory>();
         services.AddSingleton<ICleanupStrategyFactory, CleanupStrategyFactory>();
-        services.AddSingleton<IComparisonStrategyFactory, ComparisonStrategyFactory>();
+        services.AddSingleton<IDataComparisonRuleFactory, DataComparisonRuleFactory>();
+        services.AddSingleton<IAssertionStrategyFactory, AssertionStrategyFactory>();
         services.AddSingleton<ISetupStrategyFactory, SetupStrategyFactory>();
     }
 
@@ -47,10 +49,14 @@ public class DependencyInjectionFixture : TestBedFixture
         services.AddTransient<ICleanupStrategy, DeleteFromTableStrategy>();
         services.AddTransient<ICleanupStrategy, RespawnCleanupStrategy>();
 
-        // --- Comparison Strategies ---
-        services.AddTransient<IComparisonStrategy, IgnoreColumnsComparisonStrategy>();
-        services.AddTransient<IComparisonStrategy, IgnoreOrderComparisonStrategy>();
-        services.AddTransient<IComparisonStrategy, StrictEquivalenceComparisonStrategy>();
+        // --- Assertion Strategies ---
+        services.AddTransient<IAssertionStrategy, FlatAssertionStrategy>();
+        services.AddTransient<IAssertionStrategy, HierarchicalAssertionStrategy>();
+
+        // --- Comparison Rule ---
+        services.AddTransient<IDataComparisonRule, IgnoreColumnsComparisonRule>();
+        services.AddTransient<IDataComparisonRule, IgnoreOrderComparisonRule>();
+        services.AddTransient<IDataComparisonRule, StrictEquivalenceComparisonRule>();
 
         // --- Seeding (Setup) Strategies ---
         services.AddTransient<ISetupStrategy, HierarchicalSeedingStrategy>();
@@ -68,15 +74,11 @@ public class DependencyInjectionFixture : TestBedFixture
 
         services.AddScoped<DbContext>(sp => sp.GetRequiredService<ECommerceDbContext>());
 
-
-
         services.AddSingleton<IDbSchemaService, EfCachingDbSchemaService>();
 
         services.AddSingleton<IDatabaseRepository>(new DapperDatabaseRepository(connectionString));
 
-
         services.AddHttpClient();
-
 
         services.AddHttpClient("TestClient", client =>
         {

@@ -6,11 +6,11 @@ using Newtonsoft.Json.Linq;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Comparisons;
 
-public class IgnoreOrderComparisonStrategy : IComparisonStrategy
+public class IgnoreOrderComparisonRule : IDataComparisonRule
 {
     public string StrategyName => "IgnoreOrder";
 
-    public bool Compare(string beforeStateJson, string afterStateJson, string expectedStateJson, object? parameters)
+    public bool Compare(string afterStateJson, string expectedStateJson, object? parameters)
     {
         var afterList = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(afterStateJson);
         var expectedList = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(expectedStateJson);
@@ -26,10 +26,5 @@ public class IgnoreOrderComparisonStrategy : IComparisonStrategy
         {
             return false;
         }
-    }
-
-    Task<bool> IComparisonStrategy.ExecuteAsync(JObject parameters, Dictionary<string, object> context, DataMap? dataMap)
-    {
-        throw new NotImplementedException();
     }
 }

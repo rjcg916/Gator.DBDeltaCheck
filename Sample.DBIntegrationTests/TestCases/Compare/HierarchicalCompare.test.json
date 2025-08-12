@@ -39,7 +39,7 @@
   ],
   "Assert": [
     {
-      "Strategy": "HierarchicalCompare",
+      "Strategy": "Hierarchical",
       "Parameters": {
         "RootEntity": "Order",
         "FindById": "{newOrderId}",
@@ -48,7 +48,15 @@
           "Customer",
           "OrderStatus",
           "OrderItems.Product"
-        ]
+        ],
+        "ComparisonRule" :          
+          {
+            "Name": "IgnoreColumns",
+            "Parameters": [
+              "OrderId",
+              "CustomerId"
+            ]
+          }        
       }
     }
   ]

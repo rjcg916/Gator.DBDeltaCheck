@@ -45,6 +45,9 @@
     <None Update="TestCases\Compare\Data\products.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="TestCases\Compare\Expected\full_order.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="TestCases\Compare\HierarchicalCompare.test.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

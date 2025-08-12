@@ -36,10 +36,15 @@
   ],
   "Assert": [
     {
-      "TableName": "Customers",
-      "ExpectedDataFile": "expected\\one-customer-remains.json",
-      "ComparisonStrategy": "IgnoreColumns",
-      "ComparisonParameters": [ "CustomerId" ]
-    }
+      "Strategy": "SingleLevel",
+      "Parameters": {
+        "TableName": "Customers",
+        "ExpectedDataFile": "expected\\one-customer-remains.json",
+        "ComparisonRule": {
+          "Name": "IgnoreColumns",
+          "Parameters": [ "CustomerId" ]
+        }
+      }
+    }  
   ]
 }
