@@ -34,7 +34,7 @@ public class DurableFunctionActionStrategy : IActionStrategy
         // 3. Monitor the function until it completes.
         // This will throw an exception on failure or timeout, which correctly fails the test.
         await _durableFunctionClient.MonitorDurableFunctionStatusAsync(
-            startResponse.statusQueryGetUri,
+            startResponse.StatusQueryGetUri,
             timeout,
             expectedStatus);
 

@@ -29,7 +29,7 @@
   ],
   "Assert": [
     {
-      "Strategy": "SingleLevel",
+      "Strategy": "FlatAssert",
       "Parameters": {
         "TableName": "Customers",
         "ExpectedDataFile": "expected/customer_expected.json",
@@ -37,7 +37,7 @@
         }
     },
     {
-      "Strategy": "SingleLevel",
+      "Strategy": "FlatAssert",
       "Parameters": {
         "TableName": "Orders",
         "ExpectedDataFile": "expected/order_expected_map.json",
@@ -45,7 +45,7 @@
       }
     },
     {
-      "Strategy": "SingleLevel",
+      "Strategy": "FlatAssert",
       "Parameters": {
         "TableName": "OrderItems",
         "ExpectedDataFile": "expected/orderitems_expected_map.json",

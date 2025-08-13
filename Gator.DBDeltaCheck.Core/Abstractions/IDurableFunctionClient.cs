@@ -9,17 +9,17 @@ public interface IDurableFunctionClient
 }
 
 public record OrchestrationStartResponse(
-    string id,
-    string statusQueryGetUri,
-    string sendEventPostUri,
-    string terminatePostUri,
-    string purgeHistoryDeleteUri);
+    string Id,
+    string StatusQueryGetUri,
+    string SendEventPostUri,
+    string TerminatePostUri,
+    string PurgeHistoryDeleteUri);
 
 public record DurableFunctionStatus(
-    string name,
-    string instanceId,
-    string runtimeStatus,
-    object input,
-    object output,
-    string createdTime,
-    string lastUpdatedTime);
+    string Name,
+    string InstanceId,
+    string RuntimeStatus,
+    object Input,
+    object Output,
+    string CreatedTime,
+    string LastUpdatedTime);

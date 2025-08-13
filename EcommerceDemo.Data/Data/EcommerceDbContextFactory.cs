@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 
-namespace ECommerceDemo.Data.Data;
+namespace EcommerceDemo.Data.Data;
 
 /// <summary>
 ///     This factory is used by the EF Core design-time tools (e.g., for Add-Migration)

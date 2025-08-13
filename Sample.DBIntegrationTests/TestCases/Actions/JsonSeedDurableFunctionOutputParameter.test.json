@@ -36,7 +36,7 @@
   ],
   "Assert": [
     {
-      "Strategy": "SingleLevel",
+      "Strategy": "FlatAssert",
       "Parameters": {
         "TableName": "Customers",
         "ExpectedDataFile": "expected\\one-customer-remains.json",

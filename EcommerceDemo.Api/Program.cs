@@ -1,6 +1,6 @@
 using EcommerceDemo.Api.DTOs;
-using ECommerceDemo.Data.Data;
-using ECommerceDemo.Data.Entities;
+using EcommerceDemo.Data.Data;
+using EcommerceDemo.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,7 +42,7 @@ customerGroup.MapGet("/", async (ECommerceDbContext db) =>
 
 customerGroup.MapGet("/{id}", async (int id, ECommerceDbContext db) =>
     await db.Customers.FindAsync(id)
-        is Customer customer
+        is { } customer
         ? Results.Ok(customer)
         : Results.NotFound());
 
@@ -68,7 +68,7 @@ customerGroup.MapPut("/{id}", async (int id, Customer inputCustomer, ECommerceDb
 
 customerGroup.MapDelete("/{id}", async (int id, ECommerceDbContext db) =>
 {
-    if (await db.Customers.FindAsync(id) is Customer customer)
+    if (await db.Customers.FindAsync(id) is { } customer)
     {
         db.Customers.Remove(customer);
         await db.SaveChangesAsync();

@@ -2,7 +2,7 @@
 using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Gator.DBDeltaCheck.Core.ComparisonStrategies;
+namespace Gator.DBDeltaCheck.Core.Implementations.Factories;
 
 public class DataComparisonRuleFactory : IDataComparisonRuleFactory
 {

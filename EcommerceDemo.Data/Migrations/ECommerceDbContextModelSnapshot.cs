@@ -1,4 +1,4 @@
-﻿using ECommerceDemo.Data.Data;
+﻿using EcommerceDemo.Data.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 

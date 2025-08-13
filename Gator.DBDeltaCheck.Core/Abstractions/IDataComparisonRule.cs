@@ -1,7 +1,4 @@
-﻿using Gator.DBDeltaCheck.Core.Models;
-using Newtonsoft.Json.Linq;
-
-namespace Gator.DBDeltaCheck.Core.Abstractions;
+﻿namespace Gator.DBDeltaCheck.Core.Abstractions;
 
 public interface IDataComparisonRule
 {

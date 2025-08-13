@@ -1,4 +1,4 @@
-﻿namespace ECommerceDemo.Data.Entities;
+﻿namespace EcommerceDemo.Data.Entities;
 
 public class Customer
 {

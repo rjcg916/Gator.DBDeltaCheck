@@ -20,15 +20,18 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
 
     public string StrategyName => "HierarchicalSeed";
 
-    public async Task ExecuteAsync(JObject parameters, Dictionary<string, object> testContext, DataMap? dataMap)
+    public async Task Setup(JObject parameters, Dictionary<string, object> testContext, DataMap? dataMap)
     {
+
+        // 1. Get all parameters from the JSON.
+        var basePath = parameters["_basePath"]?.Value<string>() ?? Directory.GetCurrentDirectory();
 
         var dataFilePath = parameters["dataFile"]?.Value<string>()
             ?? throw new ArgumentException("Config is missing 'dataFile'.");
 
         var allowIdentityInsert = parameters["allowIdentityInsert"]?.Value<bool>() ?? false;
-        var basePath = parameters["_basePath"]?.Value<string>() ?? Directory.GetCurrentDirectory();
 
+        // 2. Resolve the absolute path and check if the file exists.
         var absoluteDataFilePath = Path.Combine(basePath, dataFilePath);
         if (!File.Exists(absoluteDataFilePath))
             throw new FileNotFoundException($"The data file was not found: {absoluteDataFilePath}");
@@ -36,16 +39,17 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
         var fileContent = await File.ReadAllTextAsync(absoluteDataFilePath);
         var seedData = JObject.Parse(fileContent);
 
+        // 3. Validate the seed data structure.
         var rootTable = seedData["rootTable"]?.Value<string>()
             ?? throw new ArgumentException($"Data file '{dataFilePath}' is missing 'rootTable'.");
 
         var data = seedData["data"]
             ?? throw new ArgumentException($"Data file '{dataFilePath}' is missing 'data'.");
 
-
+        // 4. Process the root table and its records.
         await ProcessToken(rootTable, data, new Dictionary<string, object>(), allowIdentityInsert, dataMap);
 
-
+        // 5. If there are any output instructions, process them.
         if (parameters.TryGetValue("Outputs", out var outputsToken) && outputsToken is JArray outputsArray)
         {
             await ProcessOutputs(outputsArray, testContext);
@@ -103,7 +107,6 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
             await ProcessToken(childTableName, childData, newParentKeys, allowIdentityInsert, dataMap);
         }
     }
-
 
     private async Task<Dictionary<string, object>> PrepareRecordData(
         string tableName,

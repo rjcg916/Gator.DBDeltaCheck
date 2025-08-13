@@ -1,13 +1,13 @@
 ﻿using System.Net;
-using ECommerceDemo.Data.Data;
-using ECommerceDemo.Data.Entities;
+using EcommerceDemo.Data.Data;
+using EcommerceDemo.Data.Entities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask;
 using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Logging;
 
-namespace ECommerceDemo.Functions;
+namespace EcommerceDemo.Functions;
 
 public class OrderProcessingOrchestrator
 {
@@ -48,17 +48,17 @@ public class OrderProcessingOrchestrator
         var logger = context.CreateReplaySafeLogger(nameof(OrderOrchestrator));
         var payload = context.GetInput<OrchestrationPayload>();
 
-        logger.LogInformation("Orchestration started for Customer ID: {CustomerId}", payload.CustomerId);
+        logger.LogInformation("Orchestration started for Customer ID: {CustomerId}", payload?.CustomerId);
 
         // Step 1: Create a new order
-        var newOrderId = await context.CallActivityAsync<int>(nameof(CreateOrderActivity), payload.CustomerId);
+        var newOrderId = await context.CallActivityAsync<int>(nameof(CreateOrderActivity), payload?.CustomerId);
         logger.LogInformation("Created new order with ID: {OrderId}", newOrderId);
 
         // Step 2: Update the customer's email
         await context.CallActivityAsync(nameof(UpdateCustomerEmailActivity), payload);
-        logger.LogInformation("Updated email for Customer ID: {CustomerId}", payload.CustomerId);
+        logger.LogInformation("Updated email for Customer ID: {CustomerId}", payload?.CustomerId);
 
-        return $"Order {newOrderId} processed successfully for customer {payload.CustomerId}.";
+        return $"Order {newOrderId} processed successfully for customer {payload?.CustomerId}.";
     }
 
 

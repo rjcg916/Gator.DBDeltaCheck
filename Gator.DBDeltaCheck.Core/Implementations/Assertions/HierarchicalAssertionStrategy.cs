@@ -1,18 +1,18 @@
-﻿using FluentAssertions;
+﻿using System.Linq.Expressions;
+using System.Reflection;
+using FluentAssertions;
 using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 using Gator.DBDeltaCheck.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
 
-namespace Gator.DBDeltaCheck.Core.Implementations.Comparisons;
+namespace Gator.DBDeltaCheck.Core.Implementations.Assertions;
 
 public class HierarchicalAssertionStrategy : IAssertionStrategy
 {
-    public string StrategyName => "Hierarchical";
+    public string StrategyName => "HierarchicalAssert";
 
     private readonly DbContext _dbContext;
     private readonly IDataMapper _dataMapper;
@@ -25,12 +25,17 @@ public class HierarchicalAssertionStrategy : IAssertionStrategy
         _ruleFactory = ruleFactory;
     }
 
-    public async Task AssertState(JObject parameters, Dictionary<string, object> context, DataMap? dataMap, string basePath)
+    public async Task AssertState(JObject parameters, Dictionary<string, object> context, DataMap? dataMap)
     {
+
         // 1. Get all parameters from the JSON.
+
+        var basePath = parameters["_basePath"]?.Value<string>() ?? Directory.GetCurrentDirectory();
+        var expectedDataFile = parameters["ExpectedDataFile"]?.Value<string>() ?? throw new ArgumentException("'ExpectedDataFile' is missing.");
+
+
         var rootEntityName = parameters["RootEntity"]?.Value<string>() ?? throw new ArgumentException("'RootEntity' is missing.");
         var findByIdToken = parameters["FindById"]?.Value<string>() ?? throw new ArgumentException("'FindById' is missing.");
-        var expectedDataFile = parameters["ExpectedDataFile"]?.Value<string>() ?? throw new ArgumentException("'ExpectedDataFile' is missing.");
         var includePaths = parameters["IncludePaths"]?.ToObject<List<string>>() ?? new List<string>();
 
         var comparisonRuleInfo = parameters["ComparisonRule"]?.ToObject<ComparisonRuleInfo>() ?? new ComparisonRuleInfo();
@@ -100,7 +105,7 @@ public class HierarchicalAssertionStrategy : IAssertionStrategy
             .First(m => m.Name == nameof(EntityFrameworkQueryableExtensions.FirstOrDefaultAsync) && m.GetParameters().Length == 3)
             .MakeGenericMethod(entityType.ClrType);
 
-        var task = (Task)firstOrDefaultMethod.Invoke(null, new object[] { query, lambda, default(CancellationToken) });
+        var task = (Task)firstOrDefaultMethod.Invoke(null, new object[] { query, lambda, CancellationToken.None });
         await task;
 
         // 6. Get the result from the completed task.

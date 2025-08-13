@@ -12,7 +12,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations;
 ///     An implementation of IDatabaseRepository that uses Entity Framework Core.
 ///     This implementation is generic and can work with any class that inherits from DbContext.
 /// </summary>
-public class EFCoreDatabaseRepository : IDatabaseRepository
+public class EfCoreDatabaseRepository : IDatabaseRepository
 {
     private readonly DbContext _dbContext;
 
@@ -21,7 +21,7 @@ public class EFCoreDatabaseRepository : IDatabaseRepository
     ///     The specific instance (e.g., YourAppDbContext, IdentityDbContext)
     ///     will be provided by the dependency injection container at runtime.
     /// </summary>
-    public EFCoreDatabaseRepository(DbContext dbContext)
+    public EfCoreDatabaseRepository(DbContext dbContext)
     {
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
     }

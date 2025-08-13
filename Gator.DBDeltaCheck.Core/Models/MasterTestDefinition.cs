@@ -4,7 +4,6 @@ namespace Gator.DBDeltaCheck.Core.Models;
 
 public class MasterTestDefinition
 {
-
     public required string TestCaseName { get; set; }
 
     [JsonProperty("DataMapFile")] public string? DataMapFile { get; set; }

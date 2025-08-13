@@ -1,9 +1,9 @@
-﻿using Gator.DBDeltaCheck.Core.Abstractions;
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Gator.DBDeltaCheck.Core.Abstractions;
 
-namespace Gator.DBDeltaCheck.Core.Implementations;
+namespace Gator.DBDeltaCheck.Core.Implementations.Actions;
 
 public class DurableFunctionClient : IDurableFunctionClient
 {
@@ -35,13 +35,13 @@ public class DurableFunctionClient : IDurableFunctionClient
             response.EnsureSuccessStatusCode();
             var status = await response.Content.ReadFromJsonAsync<DurableFunctionStatus>(cts.Token);
 
-            if (terminalStates.Contains(status.runtimeStatus))
+            if (terminalStates.Contains(status.RuntimeStatus))
             {
-                if (status.runtimeStatus != expectedStatus)
+                if (status.RuntimeStatus != expectedStatus)
                 {
-                    var outputJson = JsonSerializer.Serialize(status.output);
+                    var outputJson = JsonSerializer.Serialize(status.Output);
                     throw new InvalidOperationException(
-                        $"Orchestration reached terminal state '{status.runtimeStatus}', but expected '{expectedStatus}'. Output: {outputJson}");
+                        $"Orchestration reached terminal state '{status.RuntimeStatus}', but expected '{expectedStatus}'. Output: {outputJson}");
                 }
 
                 return status; // Success!

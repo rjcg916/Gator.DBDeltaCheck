@@ -39,7 +39,7 @@
   ],
   "Assert": [
     {
-      "Strategy": "Hierarchical",
+      "Strategy": "HierarchicalAssert",
       "Parameters": {
         "RootEntity": "Order",
         "FindById": "{newOrderId}",

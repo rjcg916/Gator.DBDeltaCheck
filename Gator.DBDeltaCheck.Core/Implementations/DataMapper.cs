@@ -1,7 +1,6 @@
 ﻿using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Models;
 using Newtonsoft.Json.Linq;
-using System.Linq;
 
 namespace Gator.DBDeltaCheck.Core.Implementations;
 

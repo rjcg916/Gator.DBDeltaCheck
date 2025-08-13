@@ -10,7 +10,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Assertions;
 
 public class FlatAssertionStrategy : IAssertionStrategy
 {
-    public string StrategyName => "Flat";
+    public string StrategyName => "FlatAssert";
 
     private readonly IDatabaseRepository _dbRepository;
     private readonly IDataMapper _dataMapper;
@@ -26,14 +26,18 @@ public class FlatAssertionStrategy : IAssertionStrategy
         _ruleFactory = ruleFactory;
     }
 
-    public async Task AssertState(JObject parameters, Dictionary<string, object> context, DataMap? dataMap, string basePath)
+    public async Task AssertState(JObject parameters, Dictionary<string, object> context, DataMap? dataMap)
     {
+
         // 1. Get all parameters from the JSON.
+
+        var basePath = parameters["_basePath"]?.Value<string>() ?? Directory.GetCurrentDirectory();
+        var expectedDataFile = parameters["ExpectedDataFile"]?.Value<string>()
+                               ?? throw new System.ArgumentException("'ExpectedDataFile' is missing from Flat assertion parameters.");
+
         var tableName = parameters["TableName"]?.Value<string>()
             ?? throw new System.ArgumentException("'TableName' is missing from Flat assertion parameters.");
 
-        var expectedDataFile = parameters["ExpectedDataFile"]?.Value<string>()
-            ?? throw new System.ArgumentException("'ExpectedDataFile' is missing from Flat assertion parameters.");
 
         var comparisonRuleInfo = parameters["ComparisonRule"]?.ToObject<IDataComparisonRule>()
             ?? new IgnoreOrderComparisonRule(); // Default to IgnoreOrder

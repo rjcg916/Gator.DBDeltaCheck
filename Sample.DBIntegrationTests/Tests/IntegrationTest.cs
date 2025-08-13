@@ -1,8 +1,8 @@
-﻿using FluentAssertions;
-using Gator.DBDeltaCheck.Core.Abstractions;
+﻿using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 using Gator.DBDeltaCheck.Core.Attributes;
 using Gator.DBDeltaCheck.Core.Models;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Respawn;
@@ -13,36 +13,28 @@ namespace Sample.DBIntegrationTests.Tests;
 
 public class IntegrationTest : TestBed<DependencyInjectionFixture>
 {
+    // Factories for creating strategies dynamically
+    private readonly ISetupStrategyFactory _setupFactory;
     private readonly IActionStrategyFactory _actionFactory;
     private readonly ICleanupStrategyFactory _cleanupFactory;
-    private readonly IDataComparisonRuleFactory _comparisonFactory;
-    private readonly IAssertionStrategyFactory _assertionFactory;   
+    private readonly IAssertionStrategyFactory _assertionFactory;
 
     // Core services needed for test execution
     private readonly IDatabaseRepository _dbRepository;
 
     private readonly Task<Respawner> _respawnerTask;
 
-    // Factories for creating strategies dynamically
-    private readonly ISetupStrategyFactory _setupFactory;
-
-
-    private readonly IDataMapper _dataMapper;
-
     public IntegrationTest(ITestOutputHelper testOutputHelper, DependencyInjectionFixture fixture)
         : base(testOutputHelper, fixture)
     {
-        // Resolve services from the fixture's ServiceProvider
-        _setupFactory = _fixture.GetService<ISetupStrategyFactory>(testOutputHelper);
-        _actionFactory = _fixture.GetService<IActionStrategyFactory>(testOutputHelper);
-        _comparisonFactory = _fixture.GetService<IDataComparisonRuleFactory>(testOutputHelper);
-        _assertionFactory = _fixture.GetService<IAssertionStrategyFactory>(testOutputHelper);
-        _cleanupFactory = _fixture.GetService<ICleanupStrategyFactory>(testOutputHelper);
+        _setupFactory = _fixture.GetServiceProvider(testOutputHelper).GetRequiredService<ISetupStrategyFactory>();
+        _actionFactory = _fixture.GetServiceProvider(testOutputHelper).GetRequiredService<IActionStrategyFactory>();
+        _assertionFactory = _fixture.GetServiceProvider(testOutputHelper).GetRequiredService<IAssertionStrategyFactory>();
+        _cleanupFactory = _fixture.GetServiceProvider(testOutputHelper).GetRequiredService<ICleanupStrategyFactory>();
 
-        _dbRepository = _fixture.GetService<IDatabaseRepository>(testOutputHelper);
-        _respawnerTask = _fixture.GetService<Task<Respawner>>(testOutputHelper);
+        _dbRepository = _fixture.GetServiceProvider(testOutputHelper).GetRequiredService<IDatabaseRepository>();
+        _respawnerTask = _fixture.GetServiceProvider(testOutputHelper).GetRequiredService<Task<Respawner>>();
 
-        _dataMapper = _fixture.GetService<IDataMapper>(testOutputHelper);
     }
 
     [Theory]
@@ -58,7 +50,6 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             throw new InvalidOperationException("Test case definition file path is invalid.");
         }
 
-        // if provided, read test/global data map
         DataMap? globalDataMap = null;
         if (!string.IsNullOrEmpty(testCase.DataMapFile))
         {
@@ -84,21 +75,21 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             foreach (var setupInstruction in testCase.Arrange)
             {
-  
+
                 // Add the base path to the parameters so the strategy can find relative files.
                 setupInstruction.Parameters["_basePath"] = testCaseDir;
 
                 var stepMap = globalDataMap;
 
                 // If a local map override is defined in this step's parameters, load it.
-                var localMapPath = setupInstruction.Parameters["dataMapFile"]?.Value<string>(); 
+                var localMapPath = setupInstruction.Parameters["dataMapFile"]?.Value<string>();
                 if (!string.IsNullOrEmpty(localMapPath))
                 {
                     stepMap = await LoadDataMapAsync(testCaseDir, localMapPath);
                 }
 
                 var strategy = _setupFactory.GetStrategy(setupInstruction.Strategy);
-                await strategy.ExecuteAsync(setupInstruction.Parameters, testContext, stepMap);
+                await strategy.Setup(setupInstruction.Parameters, testContext, stepMap);
             }
 
             // =================================================================
@@ -119,6 +110,18 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             foreach (var assertion in testCase.Assert)
             {
 
+                // Add the base path to the parameters so the strategy can find relative files.
+                assertion.Parameters["_basePath"] = testCaseDir;
+
+                var stepMap = globalDataMap;
+
+                // If a local map override is defined in this step's parameters, load it.
+                var localMapPath = assertion.Parameters["dataMapFile"]?.Value<string>();
+                if (!string.IsNullOrEmpty(localMapPath))
+                {
+                    stepMap = await LoadDataMapAsync(testCaseDir, localMapPath);
+                }
+
                 // 1. Get the correct high-level strategy (e.g., "Flat" or "Hierarchical").
                 var strategy = _assertionFactory.GetStrategy(assertion.Strategy);
 
@@ -127,8 +130,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
                 await strategy.AssertState(
                     assertion.Parameters,
                     testContext,
-                    globalDataMap,
-                    testCaseDir
+                    stepMap
                 );
             }
         }
@@ -137,12 +139,12 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             // =================================================================
             // FINAL CLEANUP: Optionally run specific teardown actions.
             // =================================================================
-            if (testCase.Teardown != null)
-                foreach (var cleanupInstruction in testCase.Teardown)
-                {
-                    var strategy = _cleanupFactory.GetStrategy(cleanupInstruction.Strategy);
-                    await strategy.ExecuteAsync(cleanupInstruction.Parameters);
-                }
+
+            foreach (var cleanupInstruction in testCase.Teardown)
+            {
+                var strategy = _cleanupFactory.GetStrategy(cleanupInstruction.Strategy);
+                await strategy.ExecuteAsync(cleanupInstruction.Parameters);
+            }
         }
     }
 

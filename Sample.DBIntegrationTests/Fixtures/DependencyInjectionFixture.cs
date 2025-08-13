@@ -1,7 +1,6 @@
-﻿using ECommerceDemo.Data.Data;
+﻿using EcommerceDemo.Data.Data;
 using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Abstractions.Factories;
-using Gator.DBDeltaCheck.Core.ComparisonStrategies;
 using Gator.DBDeltaCheck.Core.Implementations;
 using Gator.DBDeltaCheck.Core.Implementations.Actions;
 using Gator.DBDeltaCheck.Core.Implementations.Assertions;
