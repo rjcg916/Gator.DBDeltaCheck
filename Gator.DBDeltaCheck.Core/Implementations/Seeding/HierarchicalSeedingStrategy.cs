@@ -91,10 +91,8 @@ public class HierarchicalSeedingStrategy(
 
         var primaryKeyValue = ((dynamic)task).Result;
 
-        foreach (var childNode in childNodes)
+        foreach (var (childTableName, childData) in childNodes)
         {
-            var childTableName = childNode.Key;
-            var childData = childNode.Value;
             var foreignKeyForParent = await schemaService.GetForeignKeyColumnNameAsync(childTableName, tableName);
             var newParentKeys = new Dictionary<string, object> { { foreignKeyForParent, primaryKeyValue } };
             await ProcessToken(childTableName, childData, newParentKeys, allowIdentityInsert, dataMap);

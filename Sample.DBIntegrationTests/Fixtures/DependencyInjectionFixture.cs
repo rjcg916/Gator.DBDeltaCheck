@@ -7,6 +7,7 @@ using Gator.DBDeltaCheck.Core.Implementations.Assertions;
 using Gator.DBDeltaCheck.Core.Implementations.Cleanup;
 using Gator.DBDeltaCheck.Core.Implementations.Comparisons;
 using Gator.DBDeltaCheck.Core.Implementations.Factories;
+using Gator.DBDeltaCheck.Core.Implementations.Mapping;
 using Gator.DBDeltaCheck.Core.Implementations.Seeding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
