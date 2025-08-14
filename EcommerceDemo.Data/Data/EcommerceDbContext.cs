@@ -3,12 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EcommerceDemo.Data.Data;
 
-public class ECommerceDbContext : DbContext
+public class ECommerceDbContext(DbContextOptions<ECommerceDbContext> options) : DbContext(options)
 {
-    public ECommerceDbContext(DbContextOptions<ECommerceDbContext> options) : base(options)
-    {
-    }
-
     // DbSets for all our entities
     public DbSet<Customer> Customers { get; set; }
     public DbSet<Product> Products { get; set; }

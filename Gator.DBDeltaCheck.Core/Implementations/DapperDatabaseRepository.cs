@@ -6,35 +6,40 @@ using Microsoft.Data.SqlClient;
 
 namespace Gator.DBDeltaCheck.Core.Implementations;
 
-public class DapperDatabaseRepository : IDatabaseRepository
+public class DapperDatabaseRepository(string connectionString) : IDatabaseRepository
 {
-    private readonly string _connectionString;
-
-    public DapperDatabaseRepository(string connectionString)
-    {
-        _connectionString = connectionString;
-    }
-
     public DbConnection GetDbConnection()
     {
-        return new SqlConnection(_connectionString);
+        return new SqlConnection(connectionString);
     }
 
     public async Task<IEnumerable<T>> QueryAsync<T>(string sql, object? param = null) where T : class
     {
-        using var connection = GetDbConnection();
+        await using var connection = GetDbConnection();
         return await connection.QueryAsync<T>(sql, param);
     }
 
-    public async Task<T> ExecuteScalarAsync<T>(string sql, object? param = null)
+    public async Task<T?> ExecuteScalarAsync<T>(string sql, object? param = null)
     {
-        using var connection = GetDbConnection();
-        return await connection.ExecuteScalarAsync<T>(sql, param);
+        await using var connection = GetDbConnection();
+
+        // 1. Execute the query to get a potentially null object.
+        var result = await connection.ExecuteScalarAsync<object>(sql, param);
+
+        // 2. Check for null or DBNull, which Dapper might return.
+        if (result == null || result == DBNull.Value)
+        {
+            // Return the default value for the type T (e.g., 0 for int, null for string).
+            return default;
+        }
+
+        // 3. If the result is not null, safely convert it to the target type T.
+        return (T)Convert.ChangeType(result, typeof(T));
     }
 
     public async Task<int> ExecuteAsync(string sql, object? param = null)
     {
-        using var connection = GetDbConnection();
+        await using var connection = GetDbConnection();
         return await connection.ExecuteAsync(sql, param);
     }
 
@@ -56,7 +61,7 @@ public class DapperDatabaseRepository : IDatabaseRepository
         sqlBuilder.AppendLine($"INSERT INTO {tableName} ({columnNames}) VALUES ({valueParameters});");
 
 
-        using var connection = GetDbConnection();
+        await using var connection = GetDbConnection();
 
         return await connection.ExecuteAsync(sqlBuilder.ToString(), data);
     }
@@ -81,7 +86,7 @@ public class DapperDatabaseRepository : IDatabaseRepository
         sqlBuilder.Append($"OUTPUT INSERTED.{idColumnName} ");
         sqlBuilder.Append($"VALUES ({valueParameters});");
 
-        using var connection = GetDbConnection();
+        await using var connection = GetDbConnection();
         return await connection.QuerySingleAsync<T>(sqlBuilder.ToString(), data);
     }
 }

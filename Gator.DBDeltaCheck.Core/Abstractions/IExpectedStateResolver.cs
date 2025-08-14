@@ -11,9 +11,9 @@ public interface IExpectedStateResolver
     /// <summary>
     /// Takes a raw JSON token and a data map, and resolves any lookups.
     /// </summary>
-    /// <param name="expectedStateToken">The JToken representing the expected state.</param>
+    /// <param name="rawExpectedStateJson"></param>
     /// <param name="dataMap">The loaded data map containing lookup rules.</param>
+    /// <param name="tableName"></param>
     /// <returns>A new JToken with all lookups resolved to actual database values.</returns>
     Task<JToken> Resolve(JToken rawExpectedStateJson, DataMap dataMap, string tableName);
-
 }

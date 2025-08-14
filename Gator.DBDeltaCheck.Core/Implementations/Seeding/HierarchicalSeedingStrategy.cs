@@ -5,19 +5,12 @@ using Newtonsoft.Json.Linq;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Seeding;
 
-public class HierarchicalSeedingStrategy : ISetupStrategy
+public class HierarchicalSeedingStrategy(
+    IDatabaseRepository repository,
+    IDbSchemaService schemaService,
+    IDataMapper dataMapper)
+    : ISetupStrategy
 {
-    private readonly IDatabaseRepository _repository;
-    private readonly IDbSchemaService _schemaService;
-    private readonly IDataMapper _dataMapper;
-
-    public HierarchicalSeedingStrategy(IDatabaseRepository repository, IDbSchemaService schemaService, IDataMapper dataMapper)
-    {
-        _repository = repository;
-        _schemaService = schemaService;
-        _dataMapper = dataMapper;
-    }
-
     public string StrategyName => "HierarchicalSeed";
 
     public async Task Setup(JObject parameters, Dictionary<string, object> testContext, DataMap? dataMap)
@@ -75,7 +68,7 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
         var recordData = record.ToObject<Dictionary<string, JToken>>()!;
 
         var childNodes = new Dictionary<string, JToken>();
-        var schemaRelations = await _schemaService.GetChildTablesAsync(tableName);
+        var schemaRelations = await schemaService.GetChildTablesAsync(tableName);
         foreach (var relation in schemaRelations)
         {
             if (recordData.TryGetValue(relation.ChildCollectionName, out var childData))
@@ -87,13 +80,13 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
 
         var finalRecordData = await PrepareRecordData(tableName, recordData, parentKeys, dataMap);
 
-        var primaryKeyName = await _schemaService.GetPrimaryKeyColumnNameAsync(tableName);
-        var primaryKeyType = await _schemaService.GetPrimaryKeyTypeAsync(tableName);
+        var primaryKeyName = await schemaService.GetPrimaryKeyColumnNameAsync(tableName);
+        var primaryKeyType = await schemaService.GetPrimaryKeyTypeAsync(tableName);
 
         var methodInfo = typeof(IDatabaseRepository).GetMethod(nameof(IDatabaseRepository.InsertRecordAndGetIdAsync));
         var genericMethod = methodInfo.MakeGenericMethod(primaryKeyType);
 
-        var task = (Task)genericMethod.Invoke(_repository, new object[] { tableName, finalRecordData, primaryKeyName, allowIdentityInsert });
+        var task = (Task)genericMethod.Invoke(repository, new object[] { tableName, finalRecordData, primaryKeyName, allowIdentityInsert });
         await task;
 
         var primaryKeyValue = ((dynamic)task).Result;
@@ -102,7 +95,7 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
         {
             var childTableName = childNode.Key;
             var childData = childNode.Value;
-            var foreignKeyForParent = await _schemaService.GetForeignKeyColumnNameAsync(childTableName, tableName);
+            var foreignKeyForParent = await schemaService.GetForeignKeyColumnNameAsync(childTableName, tableName);
             var newParentKeys = new Dictionary<string, object> { { foreignKeyForParent, primaryKeyValue } };
             await ProcessToken(childTableName, childData, newParentKeys, allowIdentityInsert, dataMap);
         }
@@ -118,7 +111,7 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
         var tempRecord = JObject.FromObject(recordData);
 
         // 2. Use the DataMapper to resolve all lookups (both mapped and inline).
-        var resolvedJson = await _dataMapper.ResolveToDbState(tempRecord.ToString(), dataMap, tableName);
+        var resolvedJson = await dataMapper.ResolveToDbState(tempRecord.ToString(), dataMap, tableName);
 
         // 3. Convert the resolved JSON back into a dictionary.
         var finalData = JsonConvert.DeserializeObject<Dictionary<string, object>>(resolvedJson);
@@ -140,7 +133,7 @@ public class HierarchicalSeedingStrategy : ISetupStrategy
         {
             var source = instruction.Source;
             var sql = $"SELECT TOP 1 {source.SelectColumn} FROM {source.FromTable} ORDER BY {source.OrderByColumn} {source.OrderDirection ?? "DESC"}";
-            var outputValue = await _repository.ExecuteScalarAsync<object>(sql);
+            var outputValue = await repository.ExecuteScalarAsync<object>(sql);
             if (outputValue != null)
             {
                 testContext[instruction.VariableName] = outputValue;

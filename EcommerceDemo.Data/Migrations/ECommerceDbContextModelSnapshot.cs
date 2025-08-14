@@ -1,13 +1,13 @@
-﻿using EcommerceDemo.Data.Data;
+﻿#nullable disable
+
+using EcommerceDemo.Data.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-
-#nullable disable
 
 namespace EcommerceDemo.Data.Migrations;
 
 [DbContext(typeof(ECommerceDbContext))]
-partial class ECommerceDbContextModelSnapshot : ModelSnapshot
+internal class ECommerceDbContextModelSnapshot : ModelSnapshot
 {
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -16,7 +16,7 @@ partial class ECommerceDbContextModelSnapshot : ModelSnapshot
             .HasAnnotation("ProductVersion", "9.0.7")
             .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
-        SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+        modelBuilder.UseIdentityColumns();
 
         modelBuilder.Entity("ECommerceDemo.Data.Entities.Customer", b =>
             {
@@ -24,7 +24,7 @@ partial class ECommerceDbContextModelSnapshot : ModelSnapshot
                     .ValueGeneratedOnAdd()
                     .HasColumnType("int");
 
-                SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerId"));
+                b.Property<int>("CustomerId").UseIdentityColumn();
 
                 b.Property<string>("Email")
                     .IsRequired()
@@ -49,7 +49,7 @@ partial class ECommerceDbContextModelSnapshot : ModelSnapshot
                     .ValueGeneratedOnAdd()
                     .HasColumnType("int");
 
-                SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderId"));
+                b.Property<int>("OrderId").UseIdentityColumn();
 
                 b.Property<int>("CustomerId")
                     .HasColumnType("int");
@@ -78,7 +78,7 @@ partial class ECommerceDbContextModelSnapshot : ModelSnapshot
                     .ValueGeneratedOnAdd()
                     .HasColumnType("int");
 
-                SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderItemId"));
+                b.Property<int>("OrderItemId").UseIdentityColumn();
 
                 b.Property<int>("OrderId")
                     .HasColumnType("int");
@@ -107,7 +107,7 @@ partial class ECommerceDbContextModelSnapshot : ModelSnapshot
                     .ValueGeneratedOnAdd()
                     .HasColumnType("int");
 
-                SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderStatusId"));
+                b.Property<int>("OrderStatusId").UseIdentityColumn();
 
                 b.Property<string>("StatusName")
                     .IsRequired()
@@ -151,7 +151,7 @@ partial class ECommerceDbContextModelSnapshot : ModelSnapshot
                     .ValueGeneratedOnAdd()
                     .HasColumnType("int");
 
-                SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductId"));
+                b.Property<int>("ProductId").UseIdentityColumn();
 
                 b.Property<string>("Description")
                     .IsRequired()

@@ -10,19 +10,14 @@ namespace Gator.DBDeltaCheck.Core.Implementations; // Or your equivalent namespa
 ///     This service is designed to be highly performant by caching schema information
 ///     after the first discovery, avoiding repeated lookups during a test run.
 /// </summary>
-public class EfCachingDbSchemaService : IDbSchemaService
+public class EfCachingDbSchemaService(DbContext dbContext) : IDbSchemaService
 {
     // --- Caches to prevent re-calculating schema on every test run ---
     private static readonly ConcurrentDictionary<string, string> PrimaryKeyNameCache = new();
     private static readonly ConcurrentDictionary<string, Type> PrimaryKeyTypeCache = new();
     private static readonly ConcurrentDictionary<string, IEnumerable<ChildTableInfo>> ChildTableCache = new();
     private static readonly ConcurrentDictionary<string, string> ForeignKeyCache = new();
-    private readonly DbContext _dbContext;
-
-    public EfCachingDbSchemaService(DbContext dbContext)
-    {
-        _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
-    }
+    private readonly DbContext _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
 
     /// <summary>
     ///     Gets the primary key column name for a given table.

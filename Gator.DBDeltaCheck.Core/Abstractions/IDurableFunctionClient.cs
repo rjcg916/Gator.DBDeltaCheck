@@ -2,7 +2,7 @@
 
 public interface IDurableFunctionClient
 {
-    Task<OrchestrationStartResponse> StartDurableFunctionAsync(string orchestratorName, string payloadJson);
+    Task<OrchestrationStartResponse?> StartDurableFunctionAsync(string orchestratorName, string payloadJson);
 
     Task<DurableFunctionStatus> MonitorDurableFunctionStatusAsync(string statusQueryGetUri, int timeoutSeconds,
         string expectedStatus);

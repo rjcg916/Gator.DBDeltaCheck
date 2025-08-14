@@ -13,7 +13,7 @@ public class RespawnCleanupStrategy : ICleanupStrategy
 
     /// <summary>
     ///     The strategy's dependencies are injected via the constructor by the DI container.
-    ///     It takes a Task<Respawner> because Respawner is initialized asynchronously.
+    ///     It takes a Task Respawner because Respawner is initialized asynchronously.
     /// </summary>
     public RespawnCleanupStrategy(Task<Respawner> respawnerTask, IDatabaseRepository repository)
     {

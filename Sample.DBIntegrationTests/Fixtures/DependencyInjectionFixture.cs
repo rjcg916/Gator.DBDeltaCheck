@@ -99,18 +99,18 @@ public class DependencyInjectionFixture : TestBedFixture
             var dbRepository = sp.GetRequiredService<IDatabaseRepository>();
             // The connection is opened, used by Respawner.CreateAsync to build its internal model,
             // and then disposed. 
-            using var connection = dbRepository.GetDbConnection();
+            await using var connection = dbRepository.GetDbConnection();
             await connection.OpenAsync();
 
             var schemaName = configuration["Respawner:SchemaName"] ?? "dbo";
             var tablesToIgnore = configuration.GetSection("Respawner:TablesToIgnore").Get<string[]>() ??
-                                 Array.Empty<string>();
+                                 [];
 
             var respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
             {
                 TablesToIgnore = tablesToIgnore.Select(t => new Table(t)).ToArray(),
                 DbAdapter = DbAdapter.SqlServer,
-                SchemasToInclude = new[] { schemaName },
+                SchemasToInclude = [schemaName],
                 WithReseed = true
             });
 

@@ -4,21 +4,14 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Factories;
 
-public class DataComparisonRuleFactory : IDataComparisonRuleFactory
+public class DataComparisonRuleFactory(IServiceProvider serviceProvider) : IDataComparisonRuleFactory
 {
-    private readonly IServiceProvider _serviceProvider;
-
-    public DataComparisonRuleFactory(IServiceProvider serviceProvider)
-    {
-        _serviceProvider = serviceProvider;
-    }
-
     /// <summary>
     ///     Gets an instance of a comparison strategy based on its registered name.
     /// </summary>
     public IDataComparisonRule GetStrategy(string strategyName)
     {
-        var strategies = _serviceProvider.GetServices<IDataComparisonRule>();
+        var strategies = serviceProvider.GetServices<IDataComparisonRule>();
 
         var strategy = strategies.FirstOrDefault(s =>
             s.StrategyName.Equals(strategyName, StringComparison.OrdinalIgnoreCase));

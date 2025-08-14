@@ -102,6 +102,7 @@ orderGroup.MapGet("/", async (ECommerceDbContext db) =>
 {
     return await db.Orders
         .Include(o => o.Customer)
+        .Where(o => o.Customer != null)
         .Select(o => new OrderDto // Project the entity to a DTO
         {
             OrderId = o.OrderId,
@@ -109,7 +110,7 @@ orderGroup.MapGet("/", async (ECommerceDbContext db) =>
             TotalAmount = o.TotalAmount,
             Customer = new CustomerDto // Project the nested entity too
             {
-                CustomerId = o.Customer.CustomerId,
+                CustomerId = o.Customer!.CustomerId,
                 FirstName = o.Customer.FirstName,
                 LastName = o.Customer.LastName,
                 Email = o.Customer.Email

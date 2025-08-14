@@ -54,7 +54,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
         if (!string.IsNullOrEmpty(testCase.DataMapFile))
         {
             var globalPath = Path.Combine(testCaseDir, testCase.DataMapFile);
-            var mapContent = await File.ReadAllTextAsync(globalPath);
+            var mapContent = await File.ReadAllTextAsync(globalPath, TestContext.Current.CancellationToken);
             globalDataMap = JsonConvert.DeserializeObject<DataMap>(mapContent);
         }
 
@@ -111,6 +111,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
             {
 
                 // Add the base path to the parameters so the strategy can find relative files.
+                if (assertion.Parameters == null) continue;
                 assertion.Parameters["_basePath"] = testCaseDir;
 
                 var stepMap = globalDataMap;
@@ -151,7 +152,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
     /// <summary>
     /// A helper method to load a data map file if the path is provided.
     /// </summary>
-    private async Task<DataMap?> LoadDataMapAsync(string basePath, string? relativeMapPath)
+    private static async Task<DataMap?> LoadDataMapAsync(string basePath, string? relativeMapPath)
     {
         if (string.IsNullOrEmpty(relativeMapPath))
         {
@@ -173,25 +174,29 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
     ///     that match the token format "{key}" and replace them with values
     ///     from the test context.
     /// </summary>
-    private void ResolveTokens(JToken token, Dictionary<string, object> context)
+    private static void ResolveTokens(JToken token, Dictionary<string, object> context)
     {
-        if (token is JObject obj)
+        switch (token)
         {
-            foreach (var property in obj.Properties()) ResolveTokens(property.Value, context);
-        }
-        else if (token is JArray arr)
-        {
-            foreach (var item in arr) ResolveTokens(item, context);
-        }
-        else if (token is JValue val && val.Type == JTokenType.String)
-        {
-            var stringValue = val.Value<string>();
-            if (stringValue.StartsWith("{") && stringValue.EndsWith("}"))
+            case JObject obj:
             {
-                var key = stringValue.Trim('{', '}');
-                if (context.TryGetValue(key, out var resolvedValue))
-                    // Replace the token JValue with a new JValue of the correct type.
+                foreach (var property in obj.Properties()) ResolveTokens(property.Value, context);
+                break;
+            }
+            case JArray arr:
+            {
+                foreach (var item in arr) ResolveTokens(item, context);
+                break;
+            }
+            case JValue { Type: JTokenType.String } val:
+            {
+                // Replace the token JValue with a new JValue of the correct type.
+                var stringValue = val.Value<string>();
+                if (stringValue != null && (!stringValue.StartsWith("{") || !stringValue.EndsWith("}"))) return;
+                var key = stringValue?.Trim('{', '}');
+                if (key != null && context.TryGetValue(key, out var resolvedValue))
                     val.Replace(JToken.FromObject(resolvedValue));
+                break;
             }
         }
     }

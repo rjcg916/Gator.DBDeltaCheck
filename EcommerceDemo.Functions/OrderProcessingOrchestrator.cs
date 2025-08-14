@@ -9,15 +9,8 @@ using Microsoft.Extensions.Logging;
 
 namespace EcommerceDemo.Functions;
 
-public class OrderProcessingOrchestrator
+public class OrderProcessingOrchestrator(ECommerceDbContext dbContext)
 {
-    private readonly ECommerceDbContext _dbContext;
-
-    public OrderProcessingOrchestrator(ECommerceDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
-
     [Function("GenericOrchestrationStarter")]
     public async Task<HttpResponseData> Start(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "orchestrators/{orchestratorName}")]
@@ -48,19 +41,26 @@ public class OrderProcessingOrchestrator
         var logger = context.CreateReplaySafeLogger(nameof(OrderOrchestrator));
         var payload = context.GetInput<OrchestrationPayload>();
 
-        logger.LogInformation("Orchestration started for Customer ID: {CustomerId}", payload?.CustomerId);
 
-        // Step 1: Create a new order
-        var newOrderId = await context.CallActivityAsync<int>(nameof(CreateOrderActivity), payload?.CustomerId);
+        // Validate the input immediately and throw an exception if it's invalid.
+        // This will cause the orchestration to fail with a clear error message.
+        if (payload is not { CustomerId: > 0 })
+        {
+            logger.LogError("Invalid input: CustomerId is missing or invalid.");
+            throw new ArgumentException("Orchestration payload must include a valid CustomerId.");
+        }
+
+        logger.LogInformation("Orchestration started for Customer ID: {CustomerId}", payload.CustomerId);
+
+        // Now we can safely use payload.CustomerId without null checks.
+        var newOrderId = await context.CallActivityAsync<int>(nameof(CreateOrderActivity), payload.CustomerId);
         logger.LogInformation("Created new order with ID: {OrderId}", newOrderId);
 
-        // Step 2: Update the customer's email
         await context.CallActivityAsync(nameof(UpdateCustomerEmailActivity), payload);
-        logger.LogInformation("Updated email for Customer ID: {CustomerId}", payload?.CustomerId);
+        logger.LogInformation("Updated email for Customer ID: {CustomerId}", payload.CustomerId);
 
-        return $"Order {newOrderId} processed successfully for customer {payload?.CustomerId}.";
+        return $"Order {newOrderId} processed successfully for customer {payload.CustomerId}.";
     }
-
 
     [Function(nameof(CreateOrderActivity))]
     public async Task<int> CreateOrderActivity([ActivityTrigger] int customerId, FunctionContext executionContext)
@@ -76,8 +76,8 @@ public class OrderProcessingOrchestrator
             TotalAmount = 99.99m
         };
 
-        _dbContext.Orders.Add(newOrder);
-        await _dbContext.SaveChangesAsync();
+        dbContext.Orders.Add(newOrder);
+        await dbContext.SaveChangesAsync();
 
         return newOrder.OrderId;
     }
@@ -90,11 +90,11 @@ public class OrderProcessingOrchestrator
         var logger = executionContext.GetLogger(nameof(UpdateCustomerEmailActivity));
         logger.LogInformation("Updating email for customer {CustomerId}.", payload.CustomerId);
 
-        var customer = await _dbContext.Customers.FindAsync(payload.CustomerId);
+        var customer = await dbContext.Customers.FindAsync(payload.CustomerId);
         if (customer != null)
         {
             customer.Email = payload.NewEmail;
-            await _dbContext.SaveChangesAsync();
+            await dbContext.SaveChangesAsync();
         }
     }
 }

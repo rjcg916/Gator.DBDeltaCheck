@@ -37,10 +37,10 @@ public class IgnoreColumnsComparisonRule : IDataComparisonRule
     }
 
 
-    private List<Dictionary<string, object>> RemoveColumns(List<Dictionary<string, object>>? data,
+    private static List<Dictionary<string, object>> RemoveColumns(List<Dictionary<string, object>>? data,
         List<string> columnsToRemove)
     {
-        if (data == null) return new List<Dictionary<string, object>>();
+        if (data == null) return [];
 
         foreach (var row in data)
         foreach (var column in columnsToRemove)

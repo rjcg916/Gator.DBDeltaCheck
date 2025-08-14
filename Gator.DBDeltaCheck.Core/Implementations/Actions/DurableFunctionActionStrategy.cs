@@ -3,15 +3,8 @@ using Newtonsoft.Json.Linq;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Actions;
 
-public class DurableFunctionActionStrategy : IActionStrategy
+public class DurableFunctionActionStrategy(IDurableFunctionClient durableFunctionClient) : IActionStrategy
 {
-    private readonly IDurableFunctionClient _durableFunctionClient;
-
-    public DurableFunctionActionStrategy(IDurableFunctionClient durableFunctionClient)
-    {
-        _durableFunctionClient = durableFunctionClient;
-    }
-
     public string StrategyName => "DurableFunction";
 
     public async Task<bool> ExecuteAsync(JObject parameters)
@@ -29,11 +22,15 @@ public class DurableFunctionActionStrategy : IActionStrategy
         var expectedStatus = parameters["ExpectedStatus"]?.Value<string>() ?? "Completed";
 
         // 2. Start the durable function.
-        var startResponse = await _durableFunctionClient.StartDurableFunctionAsync(orchestratorName, payload);
+        var startResponse = await durableFunctionClient.StartDurableFunctionAsync(orchestratorName, payload);
+        if (startResponse == null)
+        {
+            throw new InvalidOperationException("Failed to start the durable function. The start response was null.");
+        }
 
         // 3. Monitor the function until it completes.
         // This will throw an exception on failure or timeout, which correctly fails the test.
-        await _durableFunctionClient.MonitorDurableFunctionStatusAsync(
+        await durableFunctionClient.MonitorDurableFunctionStatusAsync(
             startResponse.StatusQueryGetUri,
             timeout,
             expectedStatus);

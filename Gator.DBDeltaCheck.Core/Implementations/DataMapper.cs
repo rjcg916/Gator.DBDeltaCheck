@@ -4,18 +4,10 @@ using Newtonsoft.Json.Linq;
 
 namespace Gator.DBDeltaCheck.Core.Implementations;
 
-public class DataMapper : IDataMapper
+public class DataMapper(IDatabaseRepository repository, IDbSchemaService schemaService)
+    : IDataMapper
 {
     private enum MapDirection { ToDb, ToFriendly }
-
-    private readonly IDatabaseRepository _repository;
-    private readonly IDbSchemaService _schemaService;
-
-    public DataMapper(IDatabaseRepository repository, IDbSchemaService schemaService)
-    {
-        _repository = repository;
-        _schemaService = schemaService;
-    }
 
     public Task<string> ResolveToDbState(string templateJson, DataMap? dataMap, string tableName)
     {
@@ -33,7 +25,7 @@ public class DataMapper : IDataMapper
     private async Task<string> ProcessAsync(string sourceJson, DataMap? dataMap, string tableName, MapDirection direction)
     {
         var token = JToken.Parse(sourceJson).DeepClone();
-        var tableMap = dataMap?.Tables.FirstOrDefault(t => t.Name.Equals(tableName, System.StringComparison.OrdinalIgnoreCase));
+        var tableMap = dataMap?.Tables.FirstOrDefault(t => t.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
 
         if (token is JArray array)
         {
@@ -55,7 +47,7 @@ public class DataMapper : IDataMapper
 
         // This pattern ensures that we always have a valid list to call ToDictionary on.
         // If tableMap or its Lookups property is null, it defaults to an empty list.
-        var lookupRules = (tableMap?.Lookups ?? new List<LookupRule>())
+        var lookupRules = (tableMap?.Lookups ?? [])
             .ToDictionary(r => r.DataProperty, r => r, StringComparer.OrdinalIgnoreCase);
 
         foreach (var property in record.Properties().ToList())
@@ -69,8 +61,9 @@ public class DataMapper : IDataMapper
                 if (lookupRules.TryGetValue(property.Name, out var rule))
                 {
                     var displayValue = property.Value.ToObject<object>();
-                    fkColumnName = await _schemaService.GetForeignKeyColumnNameAsync(tableName, rule.LookupTable);
-                    resolvedId = await ResolveValue(rule.LookupTable, rule.LookupValueColumn, displayValue);
+                    fkColumnName = await schemaService.GetForeignKeyColumnNameAsync(tableName, rule.LookupTable);
+                    if (displayValue != null)
+                        resolvedId = await ResolveValue(rule.LookupTable, rule.LookupValueColumn, displayValue);
                 }
                 // PRIORITY 2: Fall back to checking for an inline _lookup object.
                 else if (property.Value is JObject lookupObject && lookupObject.TryGetValue("_lookupTable", out var lookupTableToken))
@@ -79,7 +72,7 @@ public class DataMapper : IDataMapper
                     var valueColumn = lookupObject["_lookupValueColumn"].Value<string>();
                     var displayValue = lookupObject["_lookupDisplayValue"].ToObject<object>();
 
-                    fkColumnName = await _schemaService.GetForeignKeyColumnNameAsync(tableName, lookupTableName);
+                    fkColumnName = await schemaService.GetForeignKeyColumnNameAsync(tableName, lookupTableName);
                     resolvedId = await ResolveValue(lookupTableName, valueColumn, displayValue);
                 }
 
@@ -94,13 +87,13 @@ public class DataMapper : IDataMapper
 
                 foreach (var mapRule in tableMap.Lookups)
                 {
-                    var fkColumnName = await _schemaService.GetForeignKeyColumnNameAsync(tableName, mapRule.LookupTable);
-                    if (property.Name.Equals(fkColumnName, System.StringComparison.OrdinalIgnoreCase))
+                    var fkColumnName = await schemaService.GetForeignKeyColumnNameAsync(tableName, mapRule.LookupTable);
+                    if (property.Name.Equals(fkColumnName, StringComparison.OrdinalIgnoreCase))
                     {
                         var idValue = property.Value.ToObject<object>();
-                        var pkColumn = await _schemaService.GetPrimaryKeyColumnNameAsync(mapRule.LookupTable);
+                        var pkColumn = await schemaService.GetPrimaryKeyColumnNameAsync(mapRule.LookupTable);
                         var sql = $"SELECT {mapRule.LookupValueColumn} FROM {mapRule.LookupTable} WHERE {pkColumn} = @idValue";
-                        var displayValue = await _repository.ExecuteScalarAsync<object>(sql, new { idValue });
+                        var displayValue = await repository.ExecuteScalarAsync<object>(sql, new { idValue });
 
                         if (displayValue != null)
                         {
@@ -114,12 +107,12 @@ public class DataMapper : IDataMapper
 
     private async Task<object?> ResolveValue(string lookupTable, string lookupValueColumn, object displayValue)
     {
-        var pkColumn = await _schemaService.GetPrimaryKeyColumnNameAsync(lookupTable);
+        var pkColumn = await schemaService.GetPrimaryKeyColumnNameAsync(lookupTable);
         var sql = $"SELECT {pkColumn} FROM {lookupTable} WHERE {lookupValueColumn} = @displayValue";
-        var resolvedId = await _repository.ExecuteScalarAsync<object>(sql, new { displayValue });
+        var resolvedId = await repository.ExecuteScalarAsync<object>(sql, new { displayValue });
 
         if (resolvedId == null)
-            throw new System.InvalidOperationException($"Lookup failed: Could not find record in '{lookupTable}' where '{lookupValueColumn}' is '{displayValue}'.");
+            throw new InvalidOperationException($"Lookup failed: Could not find record in '{lookupTable}' where '{lookupValueColumn}' is '{displayValue}'.");
 
         return resolvedId;
     }

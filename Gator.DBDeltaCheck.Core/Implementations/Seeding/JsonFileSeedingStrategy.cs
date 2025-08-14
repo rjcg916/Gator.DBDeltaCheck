@@ -5,15 +5,8 @@ using Newtonsoft.Json.Linq;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Seeding;
 
-public class JsonFileSeedingStrategy : ISetupStrategy
+public class JsonFileSeedingStrategy(IDatabaseRepository repository) : ISetupStrategy
 {
-    private readonly IDatabaseRepository _repository;
-
-    public JsonFileSeedingStrategy(IDatabaseRepository repository)
-    {
-        _repository = repository;
-    }
-
     public string StrategyName => "JsonFileSeed";
 
     /// <summary>
@@ -47,7 +40,7 @@ public class JsonFileSeedingStrategy : ISetupStrategy
 
         // 4. Seeding the data into the specified table.
         foreach (var record in records)
-            await _repository.InsertRecordAsync(tableName, record, allowIdentityInsert);
+            await repository.InsertRecordAsync(tableName, record, allowIdentityInsert);
 
         // 5. If there are any output instructions, process them.
         if (parameters.TryGetValue("Outputs", out var outputsToken) && outputsToken is JArray outputsArray)
@@ -65,7 +58,7 @@ public class JsonFileSeedingStrategy : ISetupStrategy
         {
             var source = instruction.Source;
             var sql = $"SELECT TOP 1 {source.SelectColumn} FROM {source.FromTable} ORDER BY {source.OrderByColumn} {source.OrderDirection ?? "DESC"}";
-            var outputValue = await _repository.ExecuteScalarAsync<object>(sql);
+            var outputValue = await repository.ExecuteScalarAsync<object>(sql);
             if (outputValue != null)
             {
                 testContext[instruction.VariableName] = outputValue;

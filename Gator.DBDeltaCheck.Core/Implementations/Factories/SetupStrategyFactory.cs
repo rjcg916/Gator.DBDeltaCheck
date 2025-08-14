@@ -4,21 +4,14 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Factories;
 
-public class SetupStrategyFactory : ISetupStrategyFactory
+public class SetupStrategyFactory(IServiceProvider serviceProvider) : ISetupStrategyFactory
 {
-    private readonly IServiceProvider _serviceProvider;
-
-    public SetupStrategyFactory(IServiceProvider serviceProvider)
-    {
-        _serviceProvider = serviceProvider;
-    }
-
     /// <summary>
     ///     Creates an instance of a setup strategy based on its registered name.
     /// </summary>
     public ISetupStrategy GetStrategy(string strategyName)
     {
-        var strategies = _serviceProvider.GetServices<ISetupStrategy>();
+        var strategies = serviceProvider.GetServices<ISetupStrategy>();
 
 
         var strategy = strategies.FirstOrDefault(s =>

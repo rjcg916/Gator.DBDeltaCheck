@@ -85,7 +85,7 @@ public class EfCoreDatabaseRepository : IDatabaseRepository
         await using var transaction = await _dbContext.Database.BeginTransactionAsync();
         try
         {
-            await _dbContext.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT {tableName} ON;");
+            await _dbContext.Database.ExecuteSqlAsync($"SET IDENTITY_INSERT {tableName} ON;");
 
             var recordData = (IDictionary<string, object>)data;
             var propertyNames = recordData.Keys;
@@ -95,7 +95,7 @@ public class EfCoreDatabaseRepository : IDatabaseRepository
 
             var result = await ExecuteAsync(sql, data);
 
-            await _dbContext.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT {tableName} OFF;");
+            await _dbContext.Database.ExecuteSqlAsync($"SET IDENTITY_INSERT {tableName} OFF;");
             await transaction.CommitAsync();
             return result;
         }
@@ -127,7 +127,7 @@ public class EfCoreDatabaseRepository : IDatabaseRepository
         await using var transaction = await _dbContext.Database.BeginTransactionAsync();
         try
         {
-            await _dbContext.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT {tableName} ON;");
+            await _dbContext.Database.ExecuteSqlAsync($"SET IDENTITY_INSERT {tableName} ON;");
 
             var recordData = (IDictionary<string, object>)data;
             var propertyNames = recordData.Keys;
@@ -140,7 +140,7 @@ public class EfCoreDatabaseRepository : IDatabaseRepository
 
             var result = await ExecuteScalarAsync<T>(sqlBuilder.ToString(), data);
 
-            await _dbContext.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT {tableName} OFF;");
+            await _dbContext.Database.ExecuteSqlAsync($"SET IDENTITY_INSERT {tableName} OFF;");
             await transaction.CommitAsync();
             return result;
         }

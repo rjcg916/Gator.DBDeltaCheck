@@ -12,15 +12,8 @@ namespace Gator.DBDeltaCheck.Core.Attributes;
 ///     It provides a MasterTestDefinition object as a parameter to the test method for each file found.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
-public class DatabaseStateTestAttribute : DataAttribute
+public class DatabaseStateTestAttribute(string path) : DataAttribute
 {
-    private readonly string _path;
-
-    public DatabaseStateTestAttribute(string path)
-    {
-        _path = path;
-    }
-
     /// <summary>
     ///     Overrides the abstract method from DataAttribute to provide test data.
     ///     This is the main entry point for XUnit to get the theory data.
@@ -29,10 +22,10 @@ public class DatabaseStateTestAttribute : DataAttribute
         MethodInfo testMethod,
         DisposalTracker disposalTracker)
     {
-        if (string.IsNullOrEmpty(_path))
-            throw new ArgumentException("A path to the test case directory must be provided.", nameof(_path));
+        if (string.IsNullOrEmpty(path))
+            throw new ArgumentException("A path to the test case directory must be provided.", nameof(path));
 
-        var absolutePath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), _path));
+        var absolutePath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), path));
 
         if (!Directory.Exists(absolutePath))
             throw new DirectoryNotFoundException($"Could not find the test case directory: {absolutePath}");
@@ -45,12 +38,13 @@ public class DatabaseStateTestAttribute : DataAttribute
             var testDefinition = LoadTestDefinition(file);
 
             // Create a TheoryDataRow, which is the object XUnit v3 expects.
-            var dataRow = new TheoryDataRow<MasterTestDefinition>(testDefinition);
+            var dataRow = new TheoryDataRow<MasterTestDefinition>(testDefinition)
+            {
+                // Set the custom display name using the TestCaseName from the JSON file.
+                // This name will appear in the Test Explorer.
+                TestDisplayName = testDefinition.TestCaseName
+            };
 
-            // Set the custom display name using the TestCaseName from the JSON file.
-            // This name will appear in the Test Explorer.
-            dataRow.TestDisplayName = testDefinition.TestCaseName;
-            
             testDefinitions.Add(dataRow);
         }
 

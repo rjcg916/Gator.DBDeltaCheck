@@ -4,15 +4,8 @@ using System.Text;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Actions;
 
-public class ApiCallActionStrategy : IActionStrategy
+public class ApiCallActionStrategy(IHttpClientFactory httpClientFactory) : IActionStrategy
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-
-    public ApiCallActionStrategy(IHttpClientFactory httpClientFactory)
-    {
-        _httpClientFactory = httpClientFactory;
-    }
-
     public string StrategyName => "ApiCall";
 
 
@@ -31,7 +24,7 @@ public class ApiCallActionStrategy : IActionStrategy
         var payload = parameters["Payload"]?.ToString() ?? string.Empty;
 
         // "TestClient" should match the name you used when registering the client in the DI fixture.
-        var client = _httpClientFactory.CreateClient("TestClient");
+        var client = httpClientFactory.CreateClient("TestClient");
         var request = new HttpRequestMessage(method, endpoint);
 
         if (method == HttpMethod.Post || method == HttpMethod.Put || method == HttpMethod.Patch)

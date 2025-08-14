@@ -5,19 +5,12 @@ using Gator.DBDeltaCheck.Core.Abstractions;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Actions;
 
-public class DurableFunctionClient : IDurableFunctionClient
+public class DurableFunctionClient(HttpClient httpClient) : IDurableFunctionClient
 {
-    private readonly HttpClient _httpClient;
-
-    public DurableFunctionClient(HttpClient httpClient)
-    {
-        _httpClient = httpClient;
-    }
-
-    public async Task<OrchestrationStartResponse> StartDurableFunctionAsync(string orchestratorName, string payloadJson)
+    public async Task<OrchestrationStartResponse?> StartDurableFunctionAsync(string orchestratorName, string payloadJson)
     {
         var content = new StringContent(payloadJson, Encoding.UTF8, "application/json");
-        var response = await _httpClient.PostAsync($"orchestrators/{orchestratorName}", content);
+        var response = await httpClient.PostAsync($"orchestrators/{orchestratorName}", content);
 
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<OrchestrationStartResponse>();
@@ -31,20 +24,16 @@ public class DurableFunctionClient : IDurableFunctionClient
 
         while (!cts.IsCancellationRequested)
         {
-            var response = await _httpClient.GetAsync(statusQueryGetUri, cts.Token);
+            var response = await httpClient.GetAsync(statusQueryGetUri, cts.Token);
             response.EnsureSuccessStatusCode();
             var status = await response.Content.ReadFromJsonAsync<DurableFunctionStatus>(cts.Token);
 
-            if (terminalStates.Contains(status.RuntimeStatus))
+            if (status != null && terminalStates.Contains(status.RuntimeStatus))
             {
-                if (status.RuntimeStatus != expectedStatus)
-                {
-                    var outputJson = JsonSerializer.Serialize(status.Output);
-                    throw new InvalidOperationException(
-                        $"Orchestration reached terminal state '{status.RuntimeStatus}', but expected '{expectedStatus}'. Output: {outputJson}");
-                }
-
-                return status; // Success!
+                if (status.RuntimeStatus == expectedStatus) return status; // Success!
+                var outputJson = JsonSerializer.Serialize(status.Output);
+                throw new InvalidOperationException(
+                    $"Orchestration reached terminal state '{status.RuntimeStatus}', but expected '{expectedStatus}'. Output: {outputJson}");
             }
 
             await Task.Delay(TimeSpan.FromSeconds(5), cts.Token); // Poll every 5 seconds
