@@ -16,7 +16,7 @@ public class FlatAssertionStrategy(
 {
     public string StrategyName => "FlatAssert";
 
-    public async Task AssertState(JObject parameters, Dictionary<string, object> context, DataMap? dataMap)
+    public async Task ExecuteAsync(JObject parameters, Dictionary<string, object> context, DataMap? dataMap)
     {
 
         // 1. Get all parameters from the JSON.

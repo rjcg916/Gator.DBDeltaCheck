@@ -9,7 +9,7 @@ public class MasterTestDefinition
     public required List<StepInstruction> Arrange { get; init; }
     public required List<StepInstruction> Actions { get; init; }
     public required List<ExpectedStateAssertion> Assert { get; init; }
-    public required List<StepInstruction> Teardown { get; init; }
+    public required List<StepInstruction> Teardown { get; init; } = [];
 
     // Optional property in the JSON (can be null)
     public string? DataMapFile { get; init; }

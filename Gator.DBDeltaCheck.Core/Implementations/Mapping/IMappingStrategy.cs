@@ -7,5 +7,5 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Mapping;
 /// </summary>
 public interface IMappingStrategy
 {
-    Task Apply(JObject record, string tableName, TableMap tableMap);
+    Task Apply(JObject record, string tableName, TableMap? tableMap);
 }

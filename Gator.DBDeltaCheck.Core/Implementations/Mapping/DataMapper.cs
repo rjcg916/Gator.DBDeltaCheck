@@ -27,9 +27,6 @@ public class DataMapper(ResolveToDbStrategy resolveToDbStrategy, MapToFriendlySt
         var tableMap =
             dataMap?.Tables.FirstOrDefault(t => t.Name.Equals(tableName, StringComparison.OrdinalIgnoreCase));
 
-        // If there's no map for this table, there's nothing to do.
-        if (tableMap == null) return sourceJson;
-
         if (token is JArray array)
         {
             foreach (var item in array.Children<JObject>())

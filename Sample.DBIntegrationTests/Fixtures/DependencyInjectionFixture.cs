@@ -118,7 +118,12 @@ public class DependencyInjectionFixture : TestBedFixture
             return respawner;
         });
 
+        services.AddTransient<IDataMapperValueResolver, DataMapperValueResolver>();
+        services.AddTransient<ResolveToDbStrategy>();
+        services.AddTransient<MapToFriendlyStrategy>();
+
         services.AddTransient<IDataMapper, DataMapper>();
+
     }
 
     protected override IEnumerable<TestAppSettings> GetTestAppSettings()

@@ -7,5 +7,5 @@ public interface IAssertionStrategy
 {
     string StrategyName { get; }
 
-    Task AssertState(JObject parameters, Dictionary<string, object> context, DataMap? dataMap);
+    Task ExecuteAsync(JObject parameters, Dictionary<string, object> context, DataMap? dataMap);
 }

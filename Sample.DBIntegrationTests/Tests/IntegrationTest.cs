@@ -34,7 +34,6 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
 
         _dbRepository = _fixture.GetServiceProvider(testOutputHelper).GetRequiredService<IDatabaseRepository>();
         _respawnerTask = _fixture.GetServiceProvider(testOutputHelper).GetRequiredService<Task<Respawner>>();
-
     }
 
     [Theory]
@@ -89,7 +88,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
                 }
 
                 var strategy = _setupFactory.GetStrategy(setupInstruction.Strategy);
-                await strategy.Setup(setupInstruction.Parameters, testContext, stepMap);
+                await strategy.ExecuteAsync(setupInstruction.Parameters, testContext, stepMap);
             }
 
             // =================================================================
@@ -128,7 +127,7 @@ public class IntegrationTest : TestBed<DependencyInjectionFixture>
 
                 // 2. Execute the strategy, passing all necessary context.
                 // The strategy itself now handles all the details of querying, mapping, and comparing.
-                await strategy.AssertState(
+                await strategy.ExecuteAsync(
                     assertion.Parameters,
                     testContext,
                     stepMap
