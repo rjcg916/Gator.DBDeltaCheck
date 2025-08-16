@@ -3,6 +3,7 @@ using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Abstractions.Factories;
 using Gator.DBDeltaCheck.Core.Implementations;
 using Gator.DBDeltaCheck.Core.Implementations.Actions;
+using Gator.DBDeltaCheck.Core.Implementations.Actions.DurableFunction;
 using Gator.DBDeltaCheck.Core.Implementations.Assertions;
 using Gator.DBDeltaCheck.Core.Implementations.Cleanup;
 using Gator.DBDeltaCheck.Core.Implementations.Comparisons;

@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Gator.DBDeltaCheck.Core.Abstractions;
 
-namespace Gator.DBDeltaCheck.Core.Implementations.Actions;
+namespace Gator.DBDeltaCheck.Core.Implementations.Actions.DurableFunction;
 
 public class DurableFunctionClient(HttpClient httpClient) : IDurableFunctionClient
 {
