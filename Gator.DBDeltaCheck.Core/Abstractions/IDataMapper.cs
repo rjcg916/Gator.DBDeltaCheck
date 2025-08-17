@@ -15,5 +15,5 @@ public interface IDataMapper
     /// <summary>
     /// Takes raw JSON from the database and maps its foreign keys to "friendly" values.
     /// </summary>
-    Task<string> MapToFriendlyState(string dbJson, DataMap dataMap, string tableName);
+    Task<string> MapToFriendlyState(string dbJson, DataMap dataMap, string tableName, bool excludeDefaults = false);
 }

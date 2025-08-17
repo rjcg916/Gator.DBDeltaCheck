@@ -1,0 +1,22 @@
+{
+  "rootTable": "Customers",
+  "data": [
+    {
+      "Email": "TODO: String, required",
+      "FirstName": "TODO: String, required",
+      "LastName": "TODO: String, required",
+      "Orders": [
+        {
+          "OrderDate": "TODO: DateTime, required, default: 1/1/0001 12:00:00 AM",
+          "TotalAmount": "TODO: Decimal, required, default: 0",
+          "OrderItems": [
+            {
+              "Quantity": "TODO: Int32, required, default: 0",
+              "UnitPrice": "TODO: Decimal, required, default: 0"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

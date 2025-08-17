@@ -75,7 +75,7 @@ public class DependencyInjectionFixture : TestBedFixture
 
         services.AddScoped<DbContext>(sp => sp.GetRequiredService<ECommerceDbContext>());
 
-        services.AddSingleton<IDbSchemaService, EfCachingDbSchemaService>();
+        services.AddSingleton<IDbSchemaService, EFCachingDbSchemaService>();
 
         services.AddSingleton<IDatabaseRepository>(new DapperDatabaseRepository(connectionString));
 

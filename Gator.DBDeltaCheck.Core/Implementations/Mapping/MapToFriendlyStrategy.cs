@@ -24,6 +24,12 @@ public class MapToFriendlyStrategy(IDbSchemaService schemaService, IDataMapperVa
 
                 if (displayValue != null)
                 {
+                    // 1. Before adding the new "friendly" property, remove the original
+                    //    complex object property that EF Core generated.
+                    record.Property(rule.DataProperty, System.StringComparison.OrdinalIgnoreCase)?.Remove();
+
+                    // 2. Now, replace the foreign key ID property (e.g., "CustomerId")
+                    //    with the new "friendly" property (e.g., "Customer").
                     property.Replace(new JProperty(rule.DataProperty, displayValue));
                 }
             }

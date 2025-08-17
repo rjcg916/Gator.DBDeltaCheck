@@ -1,0 +1,29 @@
+{
+  "tables": [
+    {
+      "name": "OrderItems",
+      "lookups": [
+        {
+          "dataProperty": "Product",
+          "lookupTable": "Products",
+          "lookupValueColumn": "Name"
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "lookups": [
+        {
+          "dataProperty": "Customer",
+          "lookupTable": "Customers",
+          "lookupValueColumn": "Email"
+        },
+        {
+          "dataProperty": "OrderStatus",
+          "lookupTable": "OrderStatuses",
+          "lookupValueColumn": "StatusName"
+        }
+      ]
+    }
+  ]
+}

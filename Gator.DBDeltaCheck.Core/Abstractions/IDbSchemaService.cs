@@ -27,6 +27,11 @@ public interface IDbSchemaService
     /// <param name="tableName">The name of the table.</param>
     /// <returns>The Type of the primary key (e.g., typeof(int), typeof(Guid)).</returns>
     Task<Type> GetPrimaryKeyTypeAsync(string tableName);
+
+    /// <summary>
+    /// Gets a set of property names for a given table that have a database-defined default value.
+    /// </summary>
+    Task<HashSet<string>> GetPropertyNamesWithDefaultsAsync(string tableName);
 }
 
 /// <summary>

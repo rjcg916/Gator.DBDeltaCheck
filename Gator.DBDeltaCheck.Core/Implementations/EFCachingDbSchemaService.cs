@@ -3,25 +3,24 @@ using Gator.DBDeltaCheck.Core.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace Gator.DBDeltaCheck.Core.Implementations; // Or your equivalent namespace
+namespace Gator.DBDeltaCheck.Core.Implementations;
 
 /// <summary>
-///     Implements IDbSchemaService using Entity Framework Core's metadata model.
-///     This service is designed to be highly performant by caching schema information
-///     after the first discovery, avoiding repeated lookups during a test run.
+/// Implements IDbSchemaService using Entity Framework Core's metadata model.
+/// This service is designed to be highly performant by caching schema information
+/// after the first discovery, avoiding repeated lookups during a test run.
 /// </summary>
-public class EfCachingDbSchemaService(DbContext dbContext) : IDbSchemaService
+public class EFCachingDbSchemaService(DbContext dbContext) : IDbSchemaService
 {
     // --- Caches to prevent re-calculating schema on every test run ---
     private static readonly ConcurrentDictionary<string, string> PrimaryKeyNameCache = new();
     private static readonly ConcurrentDictionary<string, Type> PrimaryKeyTypeCache = new();
     private static readonly ConcurrentDictionary<string, IEnumerable<ChildTableInfo>> ChildTableCache = new();
     private static readonly ConcurrentDictionary<string, string> ForeignKeyCache = new();
+    private static readonly ConcurrentDictionary<string, HashSet<string>> DefaultsCache = new();
+
     private readonly DbContext _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
 
-    /// <summary>
-    ///     Gets the primary key column name for a given table.
-    /// </summary>
     public Task<string> GetPrimaryKeyColumnNameAsync(string tableName)
     {
         if (PrimaryKeyNameCache.TryGetValue(tableName, out var pkColumn)) return Task.FromResult(pkColumn);
@@ -36,9 +35,6 @@ public class EfCachingDbSchemaService(DbContext dbContext) : IDbSchemaService
         return Task.FromResult(result);
     }
 
-    /// <summary>
-    ///     Gets the .NET Type of the primary key for a given table.
-    /// </summary>
     public Task<Type> GetPrimaryKeyTypeAsync(string tableName)
     {
         if (PrimaryKeyTypeCache.TryGetValue(tableName, out var pkType)) return Task.FromResult(pkType);
@@ -47,34 +43,27 @@ public class EfCachingDbSchemaService(DbContext dbContext) : IDbSchemaService
         var primaryKey = entityType.FindPrimaryKey()
                          ?? throw new InvalidOperationException($"No primary key defined for table {tableName}.");
 
-        // The ClrType property gives us the underlying .NET type (e.g., typeof(int), typeof(Guid)).
         var result = primaryKey.Properties[0].ClrType;
         PrimaryKeyTypeCache.TryAdd(tableName, result);
         return Task.FromResult(result);
     }
 
-    /// <summary>
-    ///     Gets information about the child collections for a given parent table.
-    /// </summary>
     public Task<IEnumerable<ChildTableInfo>> GetChildTablesAsync(string parentTableName)
     {
         if (ChildTableCache.TryGetValue(parentTableName, out var childTables)) return Task.FromResult(childTables);
 
         var parentEntityType = FindEntityType(parentTableName);
         var navigations = parentEntityType.GetNavigations()
-            .Where(n => n.IsCollection) // We only care about one-to-many relationships
+            .Where(n => n.IsCollection)
             .Select(n => new ChildTableInfo(
                 n.TargetEntityType.GetTableName()!,
-                n.Name // This is the collection property name from the C# class, e.g., "Orders"
+                n.Name
             )).ToList();
 
         ChildTableCache.TryAdd(parentTableName, navigations);
         return Task.FromResult<IEnumerable<ChildTableInfo>>(navigations);
     }
 
-    /// <summary>
-    ///     Gets the name of the foreign key column in a child table that references a parent table.
-    /// </summary>
     public Task<string> GetForeignKeyColumnNameAsync(string childTableName, string parentTableName)
     {
         var cacheKey = $"{childTableName}:{parentTableName}";
@@ -84,27 +73,45 @@ public class EfCachingDbSchemaService(DbContext dbContext) : IDbSchemaService
         var parentEntityType = FindEntityType(parentTableName);
 
         var foreignKey = childEntityType.GetForeignKeys()
-                             .FirstOrDefault(fk => fk.PrincipalEntityType == parentEntityType)
-                         ?? throw new InvalidOperationException(
-                             $"Could not find a foreign key from '{childTableName}' to '{parentTableName}'.");
+            .FirstOrDefault(fk => fk.PrincipalEntityType == parentEntityType)
+            ?? throw new InvalidOperationException($"Could not find a foreign key from '{childTableName}' to '{parentTableName}'.");
 
-        // FINAL CORRECTION: Use the simple GetColumnName() extension method.
-        var result = foreignKey.Properties[0].GetColumnName();
+        var storeObject = StoreObjectIdentifier.Table(childTableName, childEntityType.GetSchema());
+        var result = foreignKey.Properties[0].GetColumnName(storeObject);
+
         ForeignKeyCache.TryAdd(cacheKey, result);
         return Task.FromResult(result);
     }
 
-    /// <summary>
-    ///     A helper method to robustly find an entity type by its table name.
-    /// </summary>
+    public Task<HashSet<string>> GetPropertyNamesWithDefaultsAsync(string tableName)
+    {
+        
+        if (DefaultsCache.TryGetValue(tableName, out var cachedDefaults))
+        {
+            return Task.FromResult(cachedDefaults);
+        }
+
+        var entityType = FindEntityType(tableName);
+        var propertiesWithDefaults = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var property in entityType.GetProperties())
+        {
+            if (property.GetDefaultValue() != null || !string.IsNullOrEmpty(property.GetDefaultValueSql()))
+            {
+                propertiesWithDefaults.Add(property.Name);
+            }
+        }
+
+        DefaultsCache.TryAdd(tableName, propertiesWithDefaults);
+        return Task.FromResult(propertiesWithDefaults);
+    }
+
     private IEntityType FindEntityType(string tableName)
     {
-        // EF Core might store metadata by entity name or table name, this is more reliable.
         var entityType = _dbContext.Model.GetEntityTypes()
             .FirstOrDefault(e => e.GetTableName()?.Equals(tableName, StringComparison.OrdinalIgnoreCase) ?? false);
 
         return entityType ??
-               throw new ArgumentException(
-                   $"Table '{tableName}' could not be found in the DbContext model. Ensure it's a mapped entity.");
+               throw new ArgumentException($"Table '{tableName}' could not be found in the DbContext model. Ensure it's a mapped entity.");
     }
 }
