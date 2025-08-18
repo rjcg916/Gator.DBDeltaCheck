@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Gator.DBDeltaCheck.Tools": {
+      "commandName": "Project",
+      "commandLineArgs": "scaffold --root-table \"Orders\" --map-file \"GeneratedKits/Orders/Orders_map.json\" --template-file \"GeneratedKits/Orders/Orders_template.json\" --keys \"1\" --output-path \"TestResults\""
+    }
+  }
+}

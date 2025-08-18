@@ -1,4 +1,5 @@
-﻿using EcommerceDemo.Data.Data;
+﻿using CommandLine;
+using EcommerceDemo.Data.Data;
 using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Implementations;
 using Gator.DBDeltaCheck.Core.Implementations.Mapping;
@@ -10,157 +11,168 @@ using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-public class Program
+namespace Gator.DBDeltaCheck.Tools;
+
+#region Options Classes
+
+[Verb("scaffold", HelpText = "Generates a populated seed file from existing database data.")]
+public class ScaffoldOptions
+{
+    [Option("template-file", Required = true, HelpText = "Path to the template JSON file.")]
+    public string TemplateFile { get; set; }
+
+    [Option("map-file", Required = true, HelpText = "Path to the map JSON file.")]
+    public string MapFile { get; set; }
+
+    [Option("root-table", Required = true, HelpText = "Name of the root database table.")]
+    public string RootTable { get; set; }
+
+
+    [Option("keys", Required = false, SetName = "keysource", HelpText = "Comma-separated list of root keys.")]
+    public IEnumerable<string> Keys { get; set; }
+
+    [Option("keys-file", Required = false, SetName = "keysource", HelpText = "Path to a file containing root keys, one per line.")]
+    public string KeysFile { get; set; }
+
+    [Option("output-mode", Default = "Multiple", HelpText = "Output mode: 'Single' or 'Multiple'.")]
+    public string OutputMode { get; set; }
+
+    [Option("output-path", HelpText = "Directory for the output files. Defaults to the current directory.")]
+    public string OutputPath { get; set; }
+
+    [Option('e', "exclude-defaults", Default = false, HelpText = "Exclude columns with default values.")]
+    public bool ExcludeDefaults { get; set; }
+}
+
+
+[Verb("generate-template", HelpText = "Generates a blank, annotated template and a companion map file.")]
+public class GenerateTemplateOptions
+{
+    [Option("root-table", Required = true, HelpText = "Name of the root database table.")]
+    public string RootTable { get; set; }
+
+    [Option("output-path", HelpText = "Directory for the output files. Defaults to the current directory.")]
+    public string OutputPath { get; set; }
+}
+#endregion
+
+public static class Program
 {
     public static async Task Main(string[] args)
     {
-        if (args.Length == 0)
-        {
-            PrintUsage();
-            return;
-        }
-
-        var command = args[0].ToLowerInvariant();
-        var commandArgs = args.Skip(1).ToArray();
-
-        // Command router to select the correct tool
-        switch (command)
-        {
-            case "scaffold":
-                await RunScaffolder(commandArgs);
-                break;
-
-            case "generate-template":
-                await RunTemplateGenerator(commandArgs);
-                break;
-
-            default:
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Error: Unknown command '{command}'.");
-                Console.ResetColor();
-                PrintUsage();
-                break;
-        }
+        // The parser handles routing to the correct method based on the verb.
+        var parser = new Parser(with => with.HelpWriter = Console.Error);
+        await parser.ParseArguments<ScaffoldOptions, GenerateTemplateOptions>(args)
+            .MapResult(
+                (ScaffoldOptions opts) => RunScaffolder(opts),
+                (GenerateTemplateOptions opts) => RunTemplateGenerator(opts),
+                errs => Task.FromResult(1)); 
     }
 
     /// <summary>
-    /// Runs the Hierarchy Scaffolder to generate populated seed files from the database.
+    /// Runs the Hierarchy Scaffolder. 
     /// </summary>
-    private static async Task RunScaffolder(string[] args)
+    private static async Task<int> RunScaffolder(ScaffoldOptions opts)
     {
-        var arguments = ParseArguments(args);
-        if (!arguments.ContainsKey("--template-file") || !arguments.ContainsKey("--map-file") ||
-            (!arguments.ContainsKey("--keys") && !arguments.ContainsKey("--keys-file")))
+        if (!opts.Keys.Any() && string.IsNullOrEmpty(opts.KeysFile))
         {
-            PrintUsage();
-            return;
+            Console.Error.WriteLine("ERROR: One of --keys or --keys-file must be provided.");
+            return 1; // Return an error code
         }
 
-        var templateFilePath = arguments["--template-file"];
-        var rootTableName = arguments["--root-table"];
-        var mapFilePath = arguments["--map-file"];
+        var outputPath = string.IsNullOrEmpty(opts.OutputPath) ? Directory.GetCurrentDirectory() : opts.OutputPath;
 
-        var templateContent = await File.ReadAllTextAsync(templateFilePath);
+        var templateContent = await File.ReadAllTextAsync(opts.TemplateFile);
         var templateJson = JObject.Parse(templateContent);
         var templateData = (templateJson["data"] as JArray)?.FirstOrDefault() as JObject
                            ?? throw new InvalidOperationException("Template file must have a 'data' array with at least one object.");
 
-        var outputMode = arguments.GetValueOrDefault("--output-mode", "Multiple");
-        var outputPath = arguments.GetValueOrDefault("--output-path", Directory.GetCurrentDirectory());
-        var excludeDefaults = arguments.ContainsKey("--exclude-defaults") || arguments.ContainsKey("-ed");
-
         var rootKeys = new List<object>();
-        if (arguments.TryGetValue("--keys", out var keysString))
+        if (opts.Keys.Any())
         {
-            rootKeys.AddRange(keysString.Split(',').Select(k => k.Trim()));
+            rootKeys.AddRange(opts.Keys);
         }
-        else if (arguments.TryGetValue("--keys-file", out var keysFile))
+        else if (!string.IsNullOrEmpty(opts.KeysFile))
         {
-            rootKeys.AddRange(await File.ReadAllLinesAsync(keysFile));
+            rootKeys.AddRange(await File.ReadAllLinesAsync(opts.KeysFile));
         }
 
         var host = BuildHost();
         var scaffolder = host.Services.GetRequiredService<HierarchyScaffolder>();
 
-        var mapContent = await File.ReadAllTextAsync(mapFilePath);
+        var mapContent = await File.ReadAllTextAsync(opts.MapFile);
         var dataMap = JsonConvert.DeserializeObject<DataMap>(mapContent);
 
-        Console.WriteLine($"Scaffolding {rootKeys.Count} records from root table '{rootTableName}'...");
+        Console.WriteLine($"Scaffolding {rootKeys.Count} records from root table '{opts.RootTable}'...");
 
-        var results = await scaffolder.Scaffold(rootTableName, rootKeys, dataMap, templateData, excludeDefaults);
+        var results = await scaffolder.Scaffold(opts.RootTable, rootKeys, dataMap, templateData, opts.ExcludeDefaults);
 
-        if (outputMode.Equals("Single", StringComparison.OrdinalIgnoreCase))
+        if (opts.OutputMode.Equals("Single", StringComparison.OrdinalIgnoreCase))
         {
-            var finalJson = new JObject { ["rootTable"] = rootTableName, ["data"] = new JArray(results) };
-            await File.WriteAllTextAsync(outputPath, finalJson.ToString(Formatting.Indented));
+            var finalJson = new JObject { ["rootTable"] = opts.RootTable, ["data"] = new JArray(results) };
+            var singleFilePath = Path.Combine(outputPath, $"{opts.RootTable}_seed.json");
+            await File.WriteAllTextAsync(singleFilePath, finalJson.ToString(Formatting.Indented));
         }
         else
         {
             Directory.CreateDirectory(outputPath);
             for (var i = 0; i < results.Count; i++)
             {
-                var finalJson = new JObject { ["rootTable"] = rootTableName, ["data"] = results[i] };
-                var fileName = Path.Combine(outputPath, $"{rootTableName}_{rootKeys[i]}_seed.json");
+                var finalJson = new JObject { ["rootTable"] = opts.RootTable, ["data"] = results[i] };
+                var fileName = Path.Combine(outputPath, $"{opts.RootTable}_{rootKeys[i]}_seed.json");
                 await File.WriteAllTextAsync(fileName, finalJson.ToString(Formatting.Indented));
             }
         }
 
         Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine($"Successfully generated {results.Count} file(s) in '{outputPath}'.");
+        Console.WriteLine($"Successfully generated {results.Count} result(s) in '{outputPath}'.");
         Console.ResetColor();
+        return 0; // Success
     }
 
     /// <summary>
-    /// Runs the Hierarchy Template Generator to create blank, annotated templates and map files.
+    /// Runs the Hierarchy Template Generator.
     /// </summary>
-    private static async Task RunTemplateGenerator(string[] args)
+    private static async Task<int> RunTemplateGenerator(GenerateTemplateOptions opts)
     {
-        var arguments = ParseArguments(args);
-        if (!arguments.TryGetValue("--root-table", out var rootTableName))
-        {
-            PrintUsage();
-            return;
-        }
-
-        var outputPath = arguments.GetValueOrDefault("--output-path", Directory.GetCurrentDirectory());
+        var outputPath = string.IsNullOrEmpty(opts.OutputPath) ? Directory.GetCurrentDirectory() : opts.OutputPath;
 
         var host = BuildHost();
         var generator = host.Services.GetRequiredService<HierarchyTemplateGenerator>();
 
-        Console.WriteLine($"Generating test kit for root table: '{rootTableName}'...");
+        Console.WriteLine($"Generating test kit for root table: '{opts.RootTable}'...");
 
-        var (templateObject, dataMap) = generator.GenerateTestKit(rootTableName);
+        var (templateObject, dataMap) = generator.GenerateTestKit(opts.RootTable);
 
         var dataFileJson = new JObject
         {
-            ["rootTable"] = rootTableName,
+            ["rootTable"] = opts.RootTable,
             ["data"] = new JArray(templateObject)
         };
-        var dataFileContent = dataFileJson.ToString(Formatting.Indented);
 
-        var outputDir = Path.Combine(outputPath, "GeneratedKits", rootTableName);
+        var outputDir = Path.Combine(outputPath, "GeneratedKits", opts.RootTable);
         Directory.CreateDirectory(outputDir);
 
-        var dataOutputPath = Path.Combine(outputDir, $"{rootTableName}_template.json");
-        await File.WriteAllTextAsync(dataOutputPath, dataFileContent);
+        var dataOutputPath = Path.Combine(outputDir, $"{opts.RootTable}_template.json");
+        await File.WriteAllTextAsync(dataOutputPath, dataFileJson.ToString(Formatting.Indented));
 
         var mapFileContent = JsonConvert.SerializeObject(dataMap, Formatting.Indented);
-        var mapOutputPath = Path.Combine(outputDir, $"{rootTableName}_map.json");
+        var mapOutputPath = Path.Combine(outputDir, $"{opts.RootTable}_map.json");
         await File.WriteAllTextAsync(mapOutputPath, mapFileContent);
 
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine($"Successfully generated test kit in: {outputDir}");
         Console.ResetColor();
+        return 0; // Success
     }
 
     /// <summary>
-    /// Configures and builds the dependency injection host.
+    /// Configures and builds the dependency injection host. 
     /// </summary>
     private static IHost BuildHost() =>
         Host.CreateDefaultBuilder()
-            .ConfigureAppConfiguration((hostingContext, config) =>
+            .ConfigureAppConfiguration((_, config) =>
             {
-                // Set the base path to the directory where the app's .exe is located.
                 config.SetBasePath(AppContext.BaseDirectory);
                 config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
             })
@@ -175,47 +187,8 @@ public class Program
                 services.AddTransient<ResolveToDbStrategy>();
                 services.AddTransient<MapToFriendlyStrategy>();
                 services.AddTransient<IDataMapper, DataMapper>();
-
-                // Register the utility tools
                 services.AddTransient<HierarchyScaffolder>();
                 services.AddTransient<HierarchyTemplateGenerator>();
             })
             .Build();
-
-    /// <summary>
-    /// A simple parser for key-value command-line arguments.
-    /// </summary>
-    private static Dictionary<string, string> ParseArguments(string[] args)
-    {
-        var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        for (int i = 0; i < args.Length; i++)
-        {
-            if (args[i].StartsWith("--"))
-            {
-                if (i + 1 < args.Length && !args[i + 1].StartsWith("--"))
-                {
-                    dict[args[i]] = args[i + 1];
-                    i++; // Skip the value
-                }
-                else
-                {
-                    dict[args[i]] = "true"; // Handle boolean flags
-                }
-            }
-        }
-        return dict;
-    }
-
-    private static void PrintUsage()
-    {
-        // --- CHANGE: Updated help text ---
-        Console.WriteLine("Gator.DBDeltaCheck Tools");
-        Console.WriteLine("------------------------");
-        Console.WriteLine("\nUsage: dotnet run --project Gator.DBDeltaCheck.Tools -- [command] [options]");
-        Console.WriteLine("\nCommands:");
-        Console.WriteLine("  scaffold           Generates a populated seed file from existing database data.");
-        Console.WriteLine("                     Requires --template-file, --map-file, and --keys or --keys-file.");
-        Console.WriteLine("  generate-template  Generates a blank, annotated hierarchical template and a companion map file.");
-        Console.WriteLine("                     Requires --root-table.");
-    }
 }
