@@ -97,7 +97,7 @@ public class Program
         else
         {
             Directory.CreateDirectory(outputPath);
-            for (int i = 0; i < results.Count; i++)
+            for (var i = 0; i < results.Count; i++)
             {
                 var finalJson = new JObject { ["rootTable"] = rootTableName, ["data"] = results[i] };
                 var fileName = Path.Combine(outputPath, $"{rootTableName}_{rootKeys[i]}_seed.json");
@@ -116,13 +116,12 @@ public class Program
     private static async Task RunTemplateGenerator(string[] args)
     {
         var arguments = ParseArguments(args);
-        if (!arguments.ContainsKey("--root-table"))
+        if (!arguments.TryGetValue("--root-table", out var rootTableName))
         {
             PrintUsage();
             return;
         }
 
-        var rootTableName = arguments["--root-table"];
         var outputPath = arguments.GetValueOrDefault("--output-path", Directory.GetCurrentDirectory());
 
         var host = BuildHost();
@@ -162,7 +161,6 @@ public class Program
             .ConfigureAppConfiguration((hostingContext, config) =>
             {
                 // Set the base path to the directory where the app's .exe is located.
-                // This ensures it finds the appsettings.json file that was copied during the build.
                 config.SetBasePath(AppContext.BaseDirectory);
                 config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
             })
