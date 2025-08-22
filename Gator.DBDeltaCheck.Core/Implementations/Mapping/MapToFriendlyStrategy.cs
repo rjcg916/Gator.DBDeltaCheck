@@ -12,6 +12,11 @@ public class MapToFriendlyStrategy(IDbSchemaService schemaService, IDataMapperVa
 {
     public async Task Apply(JObject record, string tableName, TableMap tableMap)
     {
+        if (tableMap?.Lookups == null)
+        {
+            return;
+        }
+
         foreach (var rule in tableMap.Lookups)
         {
             var fkColumnName = await schemaService.GetForeignKeyColumnNameAsync(tableName, rule.LookupTable);

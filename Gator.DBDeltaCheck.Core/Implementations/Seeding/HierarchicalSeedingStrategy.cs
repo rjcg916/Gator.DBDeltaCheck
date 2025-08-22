@@ -70,10 +70,15 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Seeding;
 
         private async Task ProcessRecord(string tableName, JObject record, Dictionary<string, object> parentKeys, bool allowIdentityInsert, DataMap? dataMap)
         {
-            var recordForInsertion = (JObject)record.DeepClone();
+
+            // Filter out any "commented" properties from the raw record.
+            var activeProperties = record.Properties()
+                .Where(p => !p.Name.Trim().StartsWith("//"));
+
+            var recordForInsertion = new JObject(activeProperties);
             var childNodes = new Dictionary<string, JToken>();
             var schemaRelations = await _schemaService.GetChildTablesAsync(tableName);
-
+  
             foreach (var relation in schemaRelations)
             {
                 var property = recordForInsertion.Property(relation.ChildCollectionName, System.StringComparison.OrdinalIgnoreCase);
