@@ -22,7 +22,7 @@
     <!-- NUGET PACKAGE METADATA -->
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Gator.DBDeltaCheck.Core</PackageId>
-    <Version>1.0.4</Version>
+    <Version>1.0.0-preview.4</Version>
     <Authors>Gator Software</Authors>
     <Description>
       A data-driven, extensible .NET framework for simplifying database integration testing.

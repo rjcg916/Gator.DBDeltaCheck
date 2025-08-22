@@ -113,7 +113,15 @@ public class HierarchyTemplateGenerator
         }
         else if (defaultValueSql != null)
         {
-            sb.Append($", default SQL: {defaultValueSql}");
+            // Check for the specific SQL Server default pattern for strings.
+            if (defaultValueSql.Equals("((0))", StringComparison.Ordinal))
+            {
+                sb.Append(", default: '0'");
+            }
+            else
+            {
+                sb.Append($", default SQL: {defaultValueSql}");
+            }
         }
         return sb.ToString();
     }
