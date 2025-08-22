@@ -1,7 +1,8 @@
 {
   "profiles": {
     "Gator.DBDeltaCheck.Tools": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "generate-template --root-table Customers"
     }
   }
 }

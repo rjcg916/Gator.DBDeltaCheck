@@ -80,7 +80,7 @@ public class HierarchyTemplateGenerator
             if (!visitedNavigations.Add(navigation.Name)) continue;
 
             var childEntityType = navigation.TargetEntityType;
-            var childNode = BuildNode(childEntityType, dataMap, visitedNavigations, null);
+            var childNode = BuildNode(childEntityType, dataMap, visitedNavigations, entityType);
             node[navigation.Name] = new JArray(childNode);
         }
 
