@@ -83,8 +83,8 @@ public class HierarchyTemplateGenerator
             }
             else
             {
-                // Otherwise, it's a simple lookup table, so create the friendly property and map rule.
-                var dataPropertyName = principalEntityType.ClrType.Name;
+                // Otherwise, it's a simple lookup table, so create the property and map rule.
+                var dataPropertyName = navigation.Name;
                 node[dataPropertyName] = $"TODO: Add lookup value for {dataPropertyName} (e.g., a {bestLookupColumn})";
 
                 tableMap.Lookups.Add(new LookupRule
@@ -170,7 +170,7 @@ public class HierarchyTemplateGenerator
         foreach (var name in priorityNames)
         {
             var property = entityType.GetProperties()
-                .FirstOrDefault(p => p.Name.Equals(name, System.StringComparison.OrdinalIgnoreCase) && p.ClrType == typeof(string));
+                .FirstOrDefault(p => p.Name.Contains(name, System.StringComparison.OrdinalIgnoreCase) && p.ClrType == typeof(string));
 
             if (property != null)
             {

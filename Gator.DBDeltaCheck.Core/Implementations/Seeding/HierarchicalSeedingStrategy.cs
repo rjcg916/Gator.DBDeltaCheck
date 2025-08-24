@@ -1,5 +1,6 @@
 ﻿using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Models;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -76,7 +77,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Seeding;
                 .Where(p => !p.Name.Trim().StartsWith("//"));
 
             var recordForInsertion = new JObject(activeProperties);
-            var childNodes = new Dictionary<string, JToken>();
+            var childNodes = new Dictionary<string, (JToken childData, string navigationName)>();
             var schemaRelations = await _schemaService.GetChildTablesAsync(tableName);
   
             foreach (var relation in schemaRelations)
@@ -84,7 +85,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Seeding;
                 var property = recordForInsertion.Property(relation.ChildCollectionName, System.StringComparison.OrdinalIgnoreCase);
                 if (property != null)
                 {
-                    childNodes.Add(relation.ChildTableName, property.Value);
+                    childNodes.Add(relation.ChildTableName, (property.Value, relation.ChildCollectionName));
                     property.Remove();
                 }
             }
@@ -113,8 +114,9 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Seeding;
             foreach (var childNode in childNodes)
             {
                 var childTableName = childNode.Key;
-                var childData = childNode.Value;
-                var foreignKeyForParent = await _schemaService.GetForeignKeyColumnNameAsync(childTableName, tableName);
+                var childData = childNode.Value.childData;
+                var navigationName = childNode.Value.navigationName;
+                var foreignKeyForParent = await _schemaService.GetForeignKeyColumnNameAsync(childTableName, navigationName );
                 var newParentKeys = new Dictionary<string, object> { { foreignKeyForParent, primaryKeyValue } };
                 await ProcessToken(childTableName, childData, newParentKeys, allowIdentityInsert, dataMap);
             }

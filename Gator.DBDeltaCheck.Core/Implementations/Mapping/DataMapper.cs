@@ -54,6 +54,21 @@ public class DataMapper(ResolveToDbStrategy resolveToDbStrategy, MapToFriendlySt
                 {
                     // Recursively call the main processing method for the child data.
                     await ProcessToken(childProperty.Value, dataMap, relation.ChildTableName, strategy, excludeDefaults);
+
+                    // After processing the children, if we are creating a "friendly" state,
+                    // remove the parent's foreign key from them. It's redundant in a hierarchy.
+                    if (strategy is MapToFriendlyStrategy && childProperty.Value is JArray childArray)
+                    {
+                        // Get the name of the FK column on the child table that refers back to the parent.
+                        var fkColumn = await schemaService.GetForeignKeyColumnNameAsync(relation.ChildTableName, tableName);
+                        if (!string.IsNullOrEmpty(fkColumn))
+                        {
+                            foreach (var childItem in childArray.Children<JObject>())
+                            {
+                                childItem.Property(fkColumn, System.StringComparison.OrdinalIgnoreCase)?.Remove();
+                            }
+                        }
+                    }
                 }
             }
 

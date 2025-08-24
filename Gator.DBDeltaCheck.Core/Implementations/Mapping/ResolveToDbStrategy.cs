@@ -24,7 +24,7 @@ public class ResolveToDbStrategy(IDbSchemaService schemaService, IDataMapperValu
             if (lookupRules.TryGetValue(property.Name, out var rule))
             {
                 var displayValue = property.Value.ToObject<object>();
-                fkColumnName = await schemaService.GetForeignKeyColumnNameAsync(tableName, rule.LookupTable);
+                fkColumnName = await schemaService.GetForeignKeyColumnNameAsync(tableName, rule.DataProperty);
                 resolvedId = await valueResolver.ResolveToId(rule.LookupTable, rule.LookupValueColumn, displayValue);
             }
             else if (property.Value is JObject lookupObject && lookupObject.TryGetValue("_lookupTable", out var lookupTableToken))
@@ -32,8 +32,9 @@ public class ResolveToDbStrategy(IDbSchemaService schemaService, IDataMapperValu
                 var lookupTableName = lookupTableToken.Value<string>();
                 var valueColumn = lookupObject["_lookupValueColumn"].Value<string>();
                 var displayValue = lookupObject["_lookupDisplayValue"].ToObject<object>();
+                var dataProperty = lookupObject["_dataProperty"].ToObject<string>();
 
-                fkColumnName = await schemaService.GetForeignKeyColumnNameAsync(tableName, lookupTableName);
+                fkColumnName = await schemaService.GetForeignKeyColumnNameAsync(tableName, dataProperty);
                 resolvedId = await valueResolver.ResolveToId(lookupTableName, valueColumn, displayValue);
             }
 

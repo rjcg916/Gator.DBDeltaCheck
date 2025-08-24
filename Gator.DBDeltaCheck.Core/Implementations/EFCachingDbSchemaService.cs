@@ -29,8 +29,11 @@ public class EFCachingDbSchemaService(DbContext dbContext) : IDbSchemaService
         var primaryKey = entityType.FindPrimaryKey()
                          ?? throw new InvalidOperationException($"No primary key defined for table {tableName}.");
 
-        var storeObject = StoreObjectIdentifier.Table(tableName, entityType.GetSchema());
-        var result = primaryKey.Properties[0].GetColumnName(storeObject);
+        // Use StoreObjectIdentifier.Create to robustly get the identifier EF Core uses,
+        // which correctly handles cases where the schema is implicit.
+        var storeObject = StoreObjectIdentifier.Create(entityType, StoreObjectType.Table)
+            ?? throw new InvalidOperationException($"Could not determine the store identifier for table '{tableName}'.");
+        var result = primaryKey.Properties[0].GetColumnName(storeObject)!;
         PrimaryKeyNameCache.TryAdd(tableName, result);
         return Task.FromResult(result);
     }
@@ -64,24 +67,56 @@ public class EFCachingDbSchemaService(DbContext dbContext) : IDbSchemaService
         return Task.FromResult<IEnumerable<ChildTableInfo>>(navigations);
     }
 
-    public Task<string> GetForeignKeyColumnNameAsync(string childTableName, string parentTableName)
+    public Task<string> GetForeignKeyColumnNameAsync(string dependentTableName, string principalTableName)
+{
+    var cacheKey = $"{dependentTableName}:{principalTableName}";
+    if (ForeignKeyCache.TryGetValue(cacheKey, out var fkColumn)) return Task.FromResult(fkColumn);
+
+    var dependentEntityType = FindEntityType(dependentTableName);
+    var principalEntityType = FindEntityType(principalTableName);
+
+    // First, try the most direct approach: find a foreign key on the dependent entity
+    // that explicitly references the principal entity.
+    var foreignKey = dependentEntityType.GetForeignKeys()
+        .FirstOrDefault(fk => fk.PrincipalEntityType == principalEntityType);
+
+    // If the direct lookup fails, try to find the relationship via navigation properties
+    // on the principal entity. This can discover relationships that are only defined
+    // from the principal side in the C# model (e.g., public ICollection<Dependent> Dependents { get; set; }).
+    if (foreignKey == null)
     {
-        var cacheKey = $"{childTableName}:{parentTableName}";
-        if (ForeignKeyCache.TryGetValue(cacheKey, out var fkColumn)) return Task.FromResult(fkColumn);
-
-        var childEntityType = FindEntityType(childTableName);
-        var parentEntityType = FindEntityType(parentTableName);
-
-        var foreignKey = childEntityType.GetForeignKeys()
-            .FirstOrDefault(fk => fk.PrincipalEntityType == parentEntityType)
-            ?? throw new InvalidOperationException($"Could not find a foreign key from '{childTableName}' to '{parentTableName}'.");
-
-        var storeObject = StoreObjectIdentifier.Table(childTableName, childEntityType.GetSchema());
-        var result = foreignKey.Properties[0].GetColumnName(storeObject);
-
-        ForeignKeyCache.TryAdd(cacheKey, result);
-        return Task.FromResult(result);
+        var navigation = principalEntityType.GetNavigations()
+            .FirstOrDefault(n => n.TargetEntityType == dependentEntityType);
+        
+        if (navigation != null)
+        {
+            foreignKey = navigation.ForeignKey;
+        }
     }
+
+    if (foreignKey == null)
+    {
+        // If we still can't find it, the relationship is likely not mapped in the DbContext.
+        // Return null to allow the caller to log a warning and skip the rule.
+        return Task.FromResult<string>(null);
+    }
+
+    // A foreign key can be composite, but for this use case we'll take the first column.
+    var fkProperty = foreignKey.Properties.FirstOrDefault();
+
+    if (fkProperty == null)
+        throw new InvalidOperationException($"Foreign key from '{dependentTableName}' to '{principalTableName}' has no properties.");
+
+    // Use StoreObjectIdentifier.Create to robustly get the identifier EF Core uses,
+    // which correctly handles cases where the schema is implicit.
+    var storeObject = StoreObjectIdentifier.Create(dependentEntityType, StoreObjectType.Table)
+        ?? throw new InvalidOperationException($"Could not determine the store identifier for table '{dependentTableName}'.");
+    var result = fkProperty.GetColumnName(storeObject)!;
+
+    ForeignKeyCache.TryAdd(cacheKey, result);
+    return Task.FromResult(result);
+}
+
 
     public Task<HashSet<string>> GetPropertyNamesWithDefaultsAsync(string tableName)
     {

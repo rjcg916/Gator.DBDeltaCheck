@@ -38,12 +38,6 @@ public partial class CommandLineHandler
 
     public async Task<int> RunScaffolder(ScaffoldOptions opts)
     {
-        if (!opts.Keys.Any() && string.IsNullOrEmpty(opts.KeysFile))
-        {
-            Console.Error.WriteLine("ERROR: One of --keys or --keys-file must be provided.");
-            return 1;
-        }
-
         var outputPath = string.IsNullOrEmpty(opts.OutputPath) ? Directory.GetCurrentDirectory() : opts.OutputPath;
 
         var templateContent = await File.ReadAllTextAsync(opts.TemplateFile);
@@ -56,20 +50,11 @@ public partial class CommandLineHandler
 
         var pkType = await schemaService.GetPrimaryKeyTypeAsync(opts.RootTable);
 
-        var rootKeys = new List<object>();
-        if (opts.Keys.Any())
+        var rootKeys = await GetRootKeysAsync(opts, pkType);
+        if (!rootKeys.Any())
         {
-            foreach (var keyStr in opts.Keys)
-            {
-                rootKeys.Add(Convert.ChangeType(keyStr.Trim(), pkType));
-            }
-        }
-        else if (!string.IsNullOrEmpty(opts.KeysFile))
-        {
-            foreach (var keyStr in await File.ReadAllLinesAsync(opts.KeysFile))
-            {
-                rootKeys.Add(Convert.ChangeType(keyStr.Trim(), pkType));
-            }
+            Console.Error.WriteLine("ERROR: No valid keys were provided. One of --keys or --keys-file must be specified and contain values.");
+            return 1;
         }
 
         var mapContent = await File.ReadAllTextAsync(opts.MapFile);
@@ -90,8 +75,11 @@ public partial class CommandLineHandler
             Directory.CreateDirectory(outputPath);
             for (var i = 0; i < results.Count; i++)
             {
-                var finalJson = new JObject { ["rootTable"] = opts.RootTable, ["data"] = results[i] };
-                var fileName = Path.Combine(outputPath, $"{opts.RootTable}_{rootKeys[i]}_seed.json");
+                // The seed file format requires the "data" property to be an array of objects.
+                // Wrap the single result object in a JArray.
+                var finalJson = new JObject { ["rootTable"] = opts.RootTable, ["data"] = new JArray(results[i]) };
+                var safeKey = string.Join("_", rootKeys[i].ToString().Split(Path.GetInvalidFileNameChars()));
+                var fileName = Path.Combine(outputPath, $"{opts.RootTable}_{safeKey}_seed.json");
                 await File.WriteAllTextAsync(fileName, finalJson.ToString(Formatting.Indented));
             }
         }
@@ -100,5 +88,24 @@ public partial class CommandLineHandler
         Console.WriteLine($"Successfully generated {results.Count} result(s) in '{outputPath}'.");
         Console.ResetColor();
         return 0; // Success
+    }
+
+    private static async Task<List<object>> GetRootKeysAsync(ScaffoldOptions opts, Type pkType)
+    {
+        var keyStrings = new List<string>();
+        if (opts.Keys.Any())
+        {
+            keyStrings.AddRange(opts.Keys);
+        }
+        else if (!string.IsNullOrEmpty(opts.KeysFile))
+        {
+            keyStrings.AddRange(await File.ReadAllLinesAsync(opts.KeysFile));
+        }
+
+        return keyStrings
+            .Select(keyStr => keyStr.Trim())
+            .Where(keyStr => !string.IsNullOrEmpty(keyStr))
+            .Select(keyStr => Convert.ChangeType(keyStr, pkType))
+            .ToList();
     }
 }
