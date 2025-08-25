@@ -62,7 +62,7 @@ public class DatabaseStateTestAttribute(string path) : DataAttribute
         return true;
     }
 
-    private MasterTestDefinition LoadTestDefinition(string filePath)
+    private static MasterTestDefinition LoadTestDefinition(string filePath)
     {
         var fileContent = File.ReadAllText(filePath);
         var testDefinition = JsonConvert.DeserializeObject<MasterTestDefinition>(fileContent);

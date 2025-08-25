@@ -3,15 +3,8 @@ using Microsoft.Extensions.Hosting;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Commands
 {
-    public partial class CommandLineHandler
+    public partial class CommandLineHandler(IHost host)
     {
-        private readonly IHost _host;
-
-        public CommandLineHandler(IHost host)
-        {
-            _host = host;
-        }
-
         // This is the main entry point called by Program.cs
         public async Task<int> RunCommandAsync(string[] args)
         {

@@ -36,10 +36,10 @@ public partial class CommandLineHandler
         public bool ExcludeDefaults { get; set; }
     }
 
-    public async Task<int> RunScaffolder(ScaffoldOptions opts)
+    private async Task<int> RunScaffolder(ScaffoldOptions opts)
     {
-        var scaffolder = _host.Services.GetRequiredService<HierarchyScaffolder>();
-        var schemaService = _host.Services.GetRequiredService<IDbSchemaService>();
+        var scaffolder = host.Services.GetRequiredService<HierarchyScaffolder>();
+        var schemaService = host.Services.GetRequiredService<IDbSchemaService>();
 
         var templateContent = await File.ReadAllTextAsync(opts.TemplateFile);
         var templateJson = JObject.Parse(templateContent);
@@ -52,7 +52,7 @@ public partial class CommandLineHandler
         var rootKeys = await GetRootKeysAsync(opts, pkType);
         if (!rootKeys.Any())
         {
-            Console.Error.WriteLine("ERROR: No valid keys were provided. One of --keys or --keys-file must be specified and contain values.");
+            await Console.Error.WriteLineAsync("ERROR: No valid keys were provided. One of --keys or --keys-file must be specified and contain values.");
             return 1;
         }
 

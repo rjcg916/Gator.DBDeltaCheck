@@ -8,14 +8,9 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Seeding;
 /// An abstract base class for setup strategies that provides common functionality,
 /// such as processing output variables.
 /// </summary>
-public abstract class BaseSetupStrategy : ISetupStrategy
+public abstract class BaseSetupStrategy(IDatabaseRepository repository) : ISetupStrategy
 {
-    protected readonly IDatabaseRepository Repository;
-
-    protected BaseSetupStrategy(IDatabaseRepository repository)
-    {
-        Repository = repository;
-    }
+    protected readonly IDatabaseRepository Repository = repository;
 
     // Derived classes must provide their unique name.
     public abstract string StrategyName { get; }

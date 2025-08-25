@@ -17,9 +17,9 @@ public partial class CommandLineHandler
         public string OutputPath { get; set; }
     }
 
-    public async Task<int> RunTemplateGenerator(GenerateTemplateOptions opts)
+    private async Task<int> RunTemplateGenerator(GenerateTemplateOptions opts)
     {
-        var generator = _host.Services.GetRequiredService<HierarchyTemplateGenerator>();
+        var generator = host.Services.GetRequiredService<HierarchyTemplateGenerator>();
 
         var outputPath = string.IsNullOrEmpty(opts.OutputPath) ? Directory.GetCurrentDirectory() : opts.OutputPath;
 

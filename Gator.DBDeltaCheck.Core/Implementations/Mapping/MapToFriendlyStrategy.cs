@@ -4,17 +4,9 @@ using Newtonsoft.Json.Linq;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Mapping;
 
-public class MapToFriendlyStrategy : IMappingStrategy
+public class MapToFriendlyStrategy(IDbSchemaService schemaService, IDataMapperValueResolver valueResolver)
+    : IMappingStrategy
 {
-    private readonly IDbSchemaService _schemaService;
-    private readonly IDataMapperValueResolver _valueResolver;
-
-    public MapToFriendlyStrategy(IDbSchemaService schemaService, IDataMapperValueResolver valueResolver)
-    {
-        _schemaService = schemaService;
-        _valueResolver = valueResolver;
-    }
-
     public async Task Apply(JObject record, string tableName, TableMap? tableMap)
     {
         if (tableMap?.Lookups == null)
@@ -30,7 +22,7 @@ public class MapToFriendlyStrategy : IMappingStrategy
         {
             // Use LookupTable to find the FK relationship, as it represents the principal table.
             // DataProperty is the desired name for the new property in the output JSON.
-            var fkName = await _schemaService.GetForeignKeyColumnNameAsync(tableName, rule.LookupTable);
+            var fkName = await schemaService.GetForeignKeyColumnNameAsync(tableName, rule.LookupTable);
             if (!string.IsNullOrEmpty(fkName))
             {
                 ruleToFkNameMap[rule] = fkName;
@@ -67,17 +59,13 @@ public class MapToFriendlyStrategy : IMappingStrategy
         {
             var fkProperty = record.Property(fkColumnName, System.StringComparison.OrdinalIgnoreCase);
 
-            if (fkProperty != null)
+            var idValue = fkProperty?.Value.ToObject<object>();
+            if (idValue == null || idValue == DBNull.Value) continue;
+
+            var displayValue = await valueResolver.ResolveToFriendlyValue(rule.LookupTable, rule.LookupValueColumn, idValue);
+            if (displayValue != null)
             {
-                var idValue = fkProperty.Value.ToObject<object>();
-                if (idValue != null && idValue != DBNull.Value)
-                {
-                    var displayValue = await _valueResolver.ResolveToFriendlyValue(rule.LookupTable, rule.LookupValueColumn, idValue);
-                    if (displayValue != null)
-                    {
-                        cleanRecord.Add(rule.DataProperty, JToken.FromObject(displayValue));
-                    }
-                }
+                cleanRecord.Add(rule.DataProperty, JToken.FromObject(displayValue));
             }
         }
 

@@ -6,23 +6,13 @@ using Newtonsoft.Json.Linq;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Seeding;
 
-    public class HierarchicalSeedingStrategy : BaseSetupStrategy
+    public class HierarchicalSeedingStrategy(
+        IDatabaseRepository repository,
+        IDbSchemaService schemaService,
+        IDataMapper dataMapper)
+        : BaseSetupStrategy(repository)
     {
-
-        private readonly IDbSchemaService _schemaService;
-        private readonly IDataMapper _dataMapper;
-
         public override string StrategyName => "HierarchicalSeed";
-
-        // The constructor now correctly stores all its dependencies.
-        public HierarchicalSeedingStrategy(
-            IDatabaseRepository repository,
-            IDbSchemaService schemaService,
-            IDataMapper dataMapper) : base(repository)
-        {
-            _schemaService = schemaService;
-            _dataMapper = dataMapper;
-        }
 
         public override async Task ExecuteAsync(JObject parameters, Dictionary<string, object> testContext, DataMap? dataMap)
         {
@@ -55,16 +45,20 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Seeding;
 
         private async Task ProcessToken(string tableName, JToken token, Dictionary<string, object> parentKeys, bool allowIdentityInsert, DataMap? dataMap)
         {
-            if (token is JArray array)
+            switch (token)
             {
-                foreach (var record in array.Children<JObject>())
+                case JArray array:
                 {
-                    await ProcessRecord(tableName, record, parentKeys, allowIdentityInsert, dataMap);
+                    foreach (var record in array.Children<JObject>())
+                    {
+                        await ProcessRecord(tableName, record, parentKeys, allowIdentityInsert, dataMap);
+                    }
+
+                    break;
                 }
-            }
-            else if (token is JObject record)
-            {
-                await ProcessRecord(tableName, record, parentKeys, allowIdentityInsert, dataMap);
+                case JObject record:
+                    await ProcessRecord(tableName, record, parentKeys, allowIdentityInsert, dataMap);
+                    break;
             }
         }
 
@@ -78,7 +72,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Seeding;
 
             var recordForInsertion = new JObject(activeProperties);
             var childNodes = new Dictionary<string, (JToken childData, string navigationName)>();
-            var schemaRelations = await _schemaService.GetChildTablesAsync(tableName);
+            var schemaRelations = await schemaService.GetChildTablesAsync(tableName);
   
             foreach (var relation in schemaRelations)
             {
@@ -91,7 +85,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Seeding;
             }
 
             // Use the DataMapper to resolve all lookups.
-            var resolvedJson = await _dataMapper.ResolveToDbState(recordForInsertion.ToString(), dataMap, tableName);
+            var resolvedJson = await dataMapper.ResolveToDbState(recordForInsertion.ToString(), dataMap, tableName);
             var finalData = JsonConvert.DeserializeObject<Dictionary<string, object>>(resolvedJson);
 
             // Add parent keys.
@@ -100,8 +94,8 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Seeding;
                 finalData[parentKey.Key] = parentKey.Value;
             }
 
-            var primaryKeyName = await _schemaService.GetPrimaryKeyColumnNameAsync(tableName);
-            var primaryKeyType = await _schemaService.GetPrimaryKeyTypeAsync(tableName);
+            var primaryKeyName = await schemaService.GetPrimaryKeyColumnNameAsync(tableName);
+            var primaryKeyType = await schemaService.GetPrimaryKeyTypeAsync(tableName);
 
             var methodInfo = typeof(IDatabaseRepository).GetMethod(nameof(IDatabaseRepository.InsertRecordAndGetIdAsync));
             var genericMethod = methodInfo.MakeGenericMethod(primaryKeyType);
@@ -111,12 +105,9 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Seeding;
 
             var primaryKeyValue = ((dynamic)task).Result;
 
-            foreach (var childNode in childNodes)
+            foreach (var (childTableName, (childData, navigationName)) in childNodes)
             {
-                var childTableName = childNode.Key;
-                var childData = childNode.Value.childData;
-                var navigationName = childNode.Value.navigationName;
-                var foreignKeyForParent = await _schemaService.GetForeignKeyColumnNameAsync(childTableName, navigationName );
+                var foreignKeyForParent = await schemaService.GetForeignKeyColumnNameAsync(childTableName, navigationName );
                 var newParentKeys = new Dictionary<string, object> { { foreignKeyForParent, primaryKeyValue } };
                 await ProcessToken(childTableName, childData, newParentKeys, allowIdentityInsert, dataMap);
             }

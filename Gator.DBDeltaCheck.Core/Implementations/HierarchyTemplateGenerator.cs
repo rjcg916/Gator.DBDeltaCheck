@@ -11,21 +11,14 @@ namespace Gator.DBDeltaCheck.Core.Implementations;
 /// A service that generates a hierarchical JSON template and a companion data map
 /// by inspecting the DbContext schema, starting from a root table.
 /// </summary>
-public class HierarchyTemplateGenerator
+public class HierarchyTemplateGenerator(DbContext dbContext)
 {
-    private readonly DbContext _dbContext;
-
-    public HierarchyTemplateGenerator(DbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
-
     /// <summary>
     /// Generates a "Test Kit" containing a hierarchical template and a corresponding data map.
     /// </summary>
     public (JObject Template, DataMap Map) GenerateTestKit(string rootTableName)
     {
-        var rootEntityType = _dbContext.Model.GetEntityTypes()
+        var rootEntityType = dbContext.Model.GetEntityTypes()
             .FirstOrDefault(e => e.GetTableName()?.Equals(rootTableName, System.StringComparison.OrdinalIgnoreCase) ?? false)
             ?? throw new System.ArgumentException($"Table '{rootTableName}' not found in the DbContext model.");
 

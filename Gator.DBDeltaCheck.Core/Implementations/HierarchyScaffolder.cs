@@ -8,17 +8,8 @@ using System.Reflection;
 
 namespace Gator.DBDeltaCheck.Core.Implementations;
 
-public class HierarchyScaffolder
+public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
 {
-    private readonly DbContext _dbContext;
-    private readonly IDataMapper _dataMapper;
-
-    public HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
-    {
-        _dbContext = dbContext;
-        _dataMapper = dataMapper;
-    }
-
     // The main method is updated to accept the parsed template JObject.
     public async Task<List<JObject>> Scaffold(
         string rootTableName,
@@ -45,7 +36,7 @@ public class HierarchyScaffolder
             if (rootObject == null) continue;
 
             var rawJson = JsonConvert.SerializeObject(rootObject, serializerSettings);
-            var mappedJson = await _dataMapper.MapToFriendlyState(rawJson, dataMap, rootTableName, excludeDefaults);
+            var mappedJson = await dataMapper.MapToFriendlyState(rawJson, dataMap, rootTableName, excludeDefaults);
             allHierarchies.Add(JObject.Parse(mappedJson));
         }
 
@@ -56,7 +47,7 @@ public class HierarchyScaffolder
     {
         var setMethod = typeof(DbContext).GetMethod(nameof(DbContext.Set), System.Type.EmptyTypes)!
                                          .MakeGenericMethod(entityType.ClrType);
-        var dbSet = setMethod.Invoke(_dbContext, null)!;
+        var dbSet = setMethod.Invoke(dbContext, null)!;
         var query = (IQueryable)dbSet;
 
         var includeMethod = typeof(EntityFrameworkQueryableExtensions)
@@ -95,7 +86,7 @@ public class HierarchyScaffolder
     /// A helper method that recursively generates EF Core .Include() paths
     /// by analyzing the structure of the template file.
     /// </summary>
-    private List<string> GenerateIncludePathsFromTemplate(IEntityType entityType, JObject templateNode, INavigation? parentNavigation)
+    private static List<string> GenerateIncludePathsFromTemplate(IEntityType entityType, JObject templateNode, INavigation? parentNavigation)
     {
         var includes = new List<string>();
         var navs = entityType.GetNavigations().ToDictionary(n => n.Name, n => n, System.StringComparer.OrdinalIgnoreCase);
@@ -127,7 +118,7 @@ public class HierarchyScaffolder
     }
 
     private IEntityType FindEntityType(string tableName) =>
-        _dbContext.Model.GetEntityTypes()
+        dbContext.Model.GetEntityTypes()
             .FirstOrDefault(e => e.GetTableName()?.Equals(tableName, System.StringComparison.OrdinalIgnoreCase) ?? false)
         ?? throw new System.ArgumentException($"Table '{tableName}' not found in the DbContext model.");
 }

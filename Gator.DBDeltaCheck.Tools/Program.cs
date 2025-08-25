@@ -15,10 +15,10 @@ public static class Program
 {
     public static async Task<int> Main(string[] args)
     {
-        // Build the host to set up all your services.
+        // Build the host to set up all services.
         var host = BuildHost();
 
-        // Create an instance of your command handler, giving it the host.
+        // Create an instance of command handler, giving it the host.
         var handler = new CommandLineHandler(host);
 
         // Delegate all command-line processing to the handler.
@@ -41,7 +41,7 @@ public static class Program
                 services.AddDbContext<STARContext>(options => options.UseSqlServer(connectionString));
                 services.AddScoped<DbContext>(sp => sp.GetRequiredService<STARContext>());
                 services.AddTransient<IDatabaseRepository, DapperDatabaseRepository>(sp => new DapperDatabaseRepository(connectionString));
-                services.AddSingleton<IDbSchemaService, EFCachingDbSchemaService>();
+                services.AddSingleton<IDbSchemaService, EfCachingDbSchemaService>();
                 services.AddTransient<IDataMapperValueResolver, DataMapperValueResolver>();
                 services.AddTransient<ResolveToDbStrategy>();
                 services.AddTransient<MapToFriendlyStrategy>();
