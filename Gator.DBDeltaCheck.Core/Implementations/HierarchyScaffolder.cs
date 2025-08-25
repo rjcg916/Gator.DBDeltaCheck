@@ -11,11 +11,12 @@ namespace Gator.DBDeltaCheck.Core.Implementations;
 public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
 {
     // The main method is updated to accept the parsed template JObject.
-    public async Task<List<JObject>> Scaffold(
+    public async Task<(List<JObject> HierarchicalData, Dictionary<string, JArray> LookupData)> Scaffold(
         string rootTableName,
         IEnumerable<object> rootKeys,
         DataMap dataMap,
-        JObject template,
+        JObject rootTemplate,
+        Dictionary<string, JArray> lookupTemplates,
         bool excludeDefaults)
     {
         var rootEntityType = FindEntityType(rootTableName);
@@ -27,7 +28,7 @@ public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
         };
 
         // Generate the include paths ONCE from the template's structure.
-        var includes = GenerateIncludePathsFromTemplate(rootEntityType, template, null);
+        var includes = GenerateIncludePathsFromTemplate(rootEntityType, rootTemplate, null);
 
         foreach (var key in rootKeys)
         {
@@ -40,7 +41,25 @@ public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
             allHierarchies.Add(JObject.Parse(mappedJson));
         }
 
-        return allHierarchies;
+        // Scaffold all lookup tables defined in the data map.
+        var lookupData = new Dictionary<string, JArray>();
+        var lookupTableNames = dataMap.Tables
+            .SelectMany(t => t.Lookups)
+            .Select(l => l.LookupTable)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var tableName in lookupTableNames)
+        {
+            if (lookupTemplates.TryGetValue(tableName, out var lookupTemplateArray) &&
+                lookupTemplateArray.FirstOrDefault() is JObject lookupTemplateObject)
+            {
+                var lookupJsonArray = await ScaffoldLookupTable(tableName, lookupTemplateObject);
+                if (lookupJsonArray.Any())
+                    lookupData[tableName] = lookupJsonArray;
+            }
+        }
+
+        return (allHierarchies, lookupData);
     }
 
     private async Task<object?> QueryHierarchy(IEntityType entityType, object id, List<string> includePaths)
@@ -117,6 +136,52 @@ public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
         return includes;
     }
 
+    /// <summary>
+    /// Scaffolds all rows from a lookup table, including only the columns
+    /// that are not commented out in the provided template.
+    /// </summary>
+    private async Task<JArray> ScaffoldLookupTable(string tableName, JObject template)
+    {
+        // 1. Get the set of columns to include from the template.
+        var columnsToInclude = template.Properties()
+            .Where(p => !p.Name.StartsWith("//"))
+            .Select(p => p.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (!columnsToInclude.Any()) return new JArray();
+
+        // 2. Query all data from the database table.
+        var entityType = FindEntityType(tableName);
+        var setMethod = typeof(DbContext).GetMethod(nameof(DbContext.Set), Type.EmptyTypes)!.MakeGenericMethod(entityType.ClrType);
+        var dbSet = setMethod.Invoke(dbContext, null)!;
+
+        var toListAsyncMethod = typeof(EntityFrameworkQueryableExtensions)
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .First(m => m.Name == nameof(EntityFrameworkQueryableExtensions.ToListAsync) && m.GetParameters().Length == 2)
+            .MakeGenericMethod(entityType.ClrType);
+
+        var task = (Task)toListAsyncMethod.Invoke(null, new object[] { dbSet, default(CancellationToken) })!;
+        await task;
+        var results = (IEnumerable<object>)((dynamic)task).Result;
+
+        // 3. Build the JArray, projecting only the desired properties.
+        var jsonArray = new JArray();
+        var propertiesToMap = entityType.GetProperties()
+            .Where(p => columnsToInclude.Contains(p.Name) && p.PropertyInfo != null)
+            .Select(p => p.PropertyInfo!)
+            .ToList();
+
+        foreach (var entity in results)
+        {
+            var entityJObject = new JObject();
+            foreach (var propInfo in propertiesToMap)
+            {
+                entityJObject[propInfo.Name] = JToken.FromObject(propInfo.GetValue(entity) ?? JValue.CreateNull());
+            }
+            jsonArray.Add(entityJObject);
+        }
+        return jsonArray;
+    }
     private IEntityType FindEntityType(string tableName) =>
         dbContext.Model.GetEntityTypes()
             .FirstOrDefault(e => e.GetTableName()?.Equals(tableName, System.StringComparison.OrdinalIgnoreCase) ?? false)

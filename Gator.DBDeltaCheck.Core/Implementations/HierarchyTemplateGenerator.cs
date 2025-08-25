@@ -165,7 +165,9 @@ public class HierarchyTemplateGenerator(DbContext dbContext)
     private static string GeneratePlaceholder(IProperty property)
     {
         var sb = new StringBuilder("TODO: ");
-        sb.Append(property.ClrType.Name);
+        // Get the underlying type if it's nullable, otherwise use the type itself for a cleaner name.
+        var type = Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType;
+        sb.Append(type.Name);
         var maxLength = property.GetMaxLength();
         if (maxLength.HasValue)
         {
@@ -197,40 +199,30 @@ public class HierarchyTemplateGenerator(DbContext dbContext)
 
     private static string FindBestLookupColumn(IEntityType entityType)
     {
-
         var pkProperty = entityType.FindPrimaryKey()!.Properties.First();
 
         // If the entity has any outgoing foreign keys, it's not a simple lookup table.
         // In this case, the safest bet is to use its primary key for lookups.
         if (entityType.GetForeignKeys().Any())
         {
-            return pkProperty.GetColumnName()!;
+            return pkProperty.GetColumnName();
         }
 
-        // Rule 1: Prioritize common "friendly" names that are strings.
-        var priorityNames = new[] { "Name", "Title", "Description", "Key", "Code", "Email" };
-        foreach (var name in priorityNames)
-        {
-            var property = entityType.GetProperties()
-                .FirstOrDefault(p => p.Name.Contains(name, System.StringComparison.OrdinalIgnoreCase) && p.ClrType == typeof(string));
+        var priorityNames = new[] { "Name", "Title", "Description", "Code", "Email", "Key" };
 
-            if (property != null)
-            {
-                return property.GetColumnName()!;
-            }
-        }
+        // Find the best candidate property by ordering them based on a set of rules.
+        // Rule 1: Prefer properties with "friendly" names, respecting the order in priorityNames.
+        // Rule 2: Prefer properties that are required (not nullable) over optional ones.
+        var bestProperty = entityType.GetProperties()
+            .Where(p => p.ClrType == typeof(string) && !p.IsPrimaryKey())
+            .OrderBy(p => {
+                int index = Array.FindIndex(priorityNames, name => p.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
+                return index == -1 ? priorityNames.Length : index; // Lower index = higher priority.
+            })
+            .ThenBy(p => p.IsNullable) // false (required) comes before true (optional)
+            .FirstOrDefault();
 
-        // Rule 2: If no priority names are found, find the FIRST string property
-        // that is NOT the primary key.
-        var firstStringProperty = entityType.GetProperties()
-            .FirstOrDefault(p => p.ClrType == typeof(string) && !p.Name.Equals(pkProperty.Name, System.StringComparison.OrdinalIgnoreCase));
-
-        if (firstStringProperty != null)
-        {
-            return firstStringProperty.GetColumnName()!;
-        }
-
-        // Rule 3: As a last resort, fall back to the primary key.
-        return entityType.FindPrimaryKey()!.Properties.First().GetColumnName()!;
+        // If a suitable string property is found, use it. Otherwise, fall back to the primary key.
+        return bestProperty?.GetColumnName() ?? pkProperty.GetColumnName();
     }
 }
