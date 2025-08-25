@@ -1,13 +1,12 @@
 ﻿
 using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Implementations;
-using Gator.DBDeltaCheck.Core.Implementations.Mapping;
 using Gator.DBDeltaCheck.Core.Implementations.Commands;
+using Gator.DBDeltaCheck.Core.Implementations.Mapping;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using STARFake.EF;
 using STARFake.EF.Models;
 
 namespace Gator.DBDeltaCheck.Tools;
