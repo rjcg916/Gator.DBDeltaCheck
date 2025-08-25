@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Linq;
 
 namespace Gator.DBDeltaCheck.Core.Implementations.Commands;
 public partial class CommandLineHandler
@@ -25,23 +26,42 @@ public partial class CommandLineHandler
 
         Console.WriteLine($"Generating test kit for root table: '{opts.RootTable}'...");
 
-        var (templateObject, dataMap) = generator.GenerateTestKit(opts.RootTable);
+        // Deconstruct the results
+        var (templateObject, dataMap, lookupTemplates) = generator.GenerateTestKit(opts.RootTable);
 
+        // The main template is wrapped in a structure expected by the HierarchicalSeed strategy.
         var dataFileJson = new JObject
         {
             ["rootTable"] = opts.RootTable,
             ["data"] = new JArray(templateObject)
         };
 
+        // Create a dedicated directory for the generated kit.
         var outputDir = Path.Combine(outputPath, "GeneratedKits", opts.RootTable);
         Directory.CreateDirectory(outputDir);
 
+        // Save the main hierarchical template file.
         var dataOutputPath = Path.Combine(outputDir, $"{opts.RootTable}_template.json");
         await File.WriteAllTextAsync(dataOutputPath, dataFileJson.ToString(Formatting.Indented));
+        Console.WriteLine($" -> Saved main template: {dataOutputPath}");
 
+        // Save the data map file.
         var mapFileContent = JsonConvert.SerializeObject(dataMap, Formatting.Indented);
         var mapOutputPath = Path.Combine(outputDir, $"{opts.RootTable}_map.json");
         await File.WriteAllTextAsync(mapOutputPath, mapFileContent);
+        Console.WriteLine($" -> Saved data map: {mapOutputPath}");
+
+        // Save the individual lookup table templates.
+        if (lookupTemplates.Any())
+        {
+            Console.WriteLine("Generating lookup table templates...");
+            foreach (var (tableName, lookupTemplate) in lookupTemplates)
+            {
+                var lookupTemplatePath = Path.Combine(outputDir, $"{tableName}_template.json");
+                await File.WriteAllTextAsync(lookupTemplatePath, lookupTemplate.ToString(Formatting.Indented));
+                Console.WriteLine($" -> Saved lookup template: {lookupTemplatePath}");
+            }
+        }
 
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine($"Successfully generated test kit in: {outputDir}");

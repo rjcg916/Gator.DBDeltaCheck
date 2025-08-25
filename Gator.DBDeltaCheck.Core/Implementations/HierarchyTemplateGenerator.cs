@@ -15,8 +15,9 @@ public class HierarchyTemplateGenerator(DbContext dbContext)
 {
     /// <summary>
     /// Generates a "Test Kit" containing a hierarchical template and a corresponding data map.
+    /// and separate data templates for any lookup tables.
     /// </summary>
-    public (JObject Template, DataMap Map) GenerateTestKit(string rootTableName)
+    public (JObject Template, DataMap Map, Dictionary<string, JArray> LookupTemplates) GenerateTestKit(string rootTableName)
     {
         var rootEntityType = dbContext.Model.GetEntityTypes()
             .FirstOrDefault(e => e.GetTableName()?.Equals(rootTableName, System.StringComparison.OrdinalIgnoreCase) ?? false)
@@ -25,7 +26,27 @@ public class HierarchyTemplateGenerator(DbContext dbContext)
         var dataMap = new DataMap { Tables = new List<TableMap>() };
         var template = BuildNode(rootEntityType, dataMap, new HashSet<string>(), null);
 
-        return (template, dataMap);
+        var lookupTemplates = new Dictionary<string, JArray>();
+        var allEntityTypes = dbContext.Model.GetEntityTypes();
+
+        var lookupTableNames = dataMap.Tables
+            .SelectMany(t => t.Lookups)
+            .Select(l => l.LookupTable)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var tableName in lookupTableNames)
+        {
+            var entityType = allEntityTypes
+                .FirstOrDefault(e => e.GetTableName()?.Equals(tableName, System.StringComparison.OrdinalIgnoreCase) ?? false);
+
+            if (entityType != null)
+            {
+                var lookupTemplateObject = GenerateFlatTemplate(entityType);
+                lookupTemplates[tableName] = new JArray(lookupTemplateObject);
+            }
+        }
+
+        return (template, dataMap, lookupTemplates);
     }
 
     /// <summary>
@@ -110,6 +131,34 @@ public class HierarchyTemplateGenerator(DbContext dbContext)
             dataMap.Tables.Add(tableMap);
         }
 
+        return node;
+    }
+
+    /// <summary>
+    /// Generates a flat JObject template for a single entity type, including only its scalar properties.
+    /// </summary>
+    private static JObject GenerateFlatTemplate(IEntityType entityType)
+    {
+        var node = new JObject();
+        // Add scalar properties, excluding foreign keys.
+        foreach (var property in entityType.GetProperties().Where(p => !p.IsForeignKey()))
+        {
+            // Exclude auto-generated primary keys, but include user-provided (natural) keys.
+            if (property.IsPrimaryKey() && property.ValueGenerated != ValueGenerated.Never)
+            {
+                continue;
+            }
+
+            bool hasDefault = property.GetDefaultValue() != null || !string.IsNullOrEmpty(property.GetDefaultValueSql());
+
+            // If the property is optional OR has a default, comment it out.
+            // A user-provided PK is never optional, so we make it a required property in the template.
+            var propertyName = (property.IsNullable || hasDefault) && !property.IsPrimaryKey()
+                ? $"// {property.Name}"
+                : property.Name;
+
+            node[propertyName] = GeneratePlaceholder(property);
+        }
         return node;
     }
 
