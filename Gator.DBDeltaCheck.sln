@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EcommerceDemo.Functions", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gator.DBDeltaCheck.Tools", "Gator.DBDeltaCheck.Tools\Gator.DBDeltaCheck.Tools.csproj", "{CEE1C557-19B2-46ED-B466-D2CADBD2A375}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "STARFake.EF", "..\..\poc\DBDeltaCheck\STARFake.EF\STARFake.EF.csproj", "{6F05AE08-9405-3F97-1FB8-1CB6E8791E44}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{CEE1C557-19B2-46ED-B466-D2CADBD2A375}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CEE1C557-19B2-46ED-B466-D2CADBD2A375}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CEE1C557-19B2-46ED-B466-D2CADBD2A375}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F05AE08-9405-3F97-1FB8-1CB6E8791E44}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F05AE08-9405-3F97-1FB8-1CB6E8791E44}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F05AE08-9405-3F97-1FB8-1CB6E8791E44}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F05AE08-9405-3F97-1FB8-1CB6E8791E44}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

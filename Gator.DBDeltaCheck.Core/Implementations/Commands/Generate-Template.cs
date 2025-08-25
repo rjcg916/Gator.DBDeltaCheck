@@ -19,9 +19,9 @@ public partial class CommandLineHandler
 
     public async Task<int> RunTemplateGenerator(GenerateTemplateOptions opts)
     {
-        var outputPath = string.IsNullOrEmpty(opts.OutputPath) ? Directory.GetCurrentDirectory() : opts.OutputPath;
-
         var generator = _host.Services.GetRequiredService<HierarchyTemplateGenerator>();
+
+        var outputPath = string.IsNullOrEmpty(opts.OutputPath) ? Directory.GetCurrentDirectory() : opts.OutputPath;
 
         Console.WriteLine($"Generating test kit for root table: '{opts.RootTable}'...");
 

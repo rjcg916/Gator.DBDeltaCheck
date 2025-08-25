@@ -5,6 +5,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <UserSecretsId>92755049-0cc3-4848-a66e-00ed25af1394</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,8 +17,8 @@
 
   <ItemGroup>
     <!-- References to your other projects -->
+    <ProjectReference Include="..\EcommerceDemo.Data\EcommerceDemo.Data.csproj" />
     <ProjectReference Include="..\Gator.DBDeltaCheck.Core\Gator.DBDeltaCheck.Core.csproj" />
-    <ProjectReference Include="..\ECommerceDemo.Data\ECommerceDemo.Data.csproj" />
   </ItemGroup>
 
   <ItemGroup>

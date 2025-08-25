@@ -11,10 +11,10 @@
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="FluentAssertions" Version="8.5.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.7" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.8" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="Respawn" Version="6.2.1" />
     <PackageReference Include="xunit.v3.extensibility.core" Version="3.0.0" />
@@ -24,7 +24,7 @@
     <!-- NUGET PACKAGE METADATA -->
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Gator.DBDeltaCheck.Core</PackageId>
-    <Version>1.0.0-preview.11</Version>
+    <Version>1.0.0-preview.15</Version>
     <Authors>Gator Software</Authors>
     <Description>
       A data-driven, extensible .NET framework for simplifying database integration testing.

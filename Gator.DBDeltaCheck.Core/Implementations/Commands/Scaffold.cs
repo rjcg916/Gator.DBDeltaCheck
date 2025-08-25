@@ -38,15 +38,14 @@ public partial class CommandLineHandler
 
     public async Task<int> RunScaffolder(ScaffoldOptions opts)
     {
-        var outputPath = string.IsNullOrEmpty(opts.OutputPath) ? Directory.GetCurrentDirectory() : opts.OutputPath;
+        var scaffolder = _host.Services.GetRequiredService<HierarchyScaffolder>();
+        var schemaService = _host.Services.GetRequiredService<IDbSchemaService>();
 
         var templateContent = await File.ReadAllTextAsync(opts.TemplateFile);
         var templateJson = JObject.Parse(templateContent);
         var templateData = (templateJson["data"] as JArray)?.FirstOrDefault() as JObject
                            ?? throw new InvalidOperationException("Template file must have a 'data' array with at least one object.");
-
-        var scaffolder = _host.Services.GetRequiredService<HierarchyScaffolder>();
-        var schemaService = _host.Services.GetRequiredService<IDbSchemaService>();
+        var outputPath = string.IsNullOrEmpty(opts.OutputPath) ? Directory.GetCurrentDirectory() : opts.OutputPath;
 
         var pkType = await schemaService.GetPrimaryKeyTypeAsync(opts.RootTable);
 
