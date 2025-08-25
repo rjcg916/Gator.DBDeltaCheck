@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <!-- References to your other projects -->
-    <ProjectReference Include="..\EcommerceDemo.Data\EcommerceDemo.Data.csproj" />
+    <ProjectReference Include="..\..\..\poc\DBDeltaCheck\STARFake.EF\STARFake.EF.csproj" />
     <ProjectReference Include="..\Gator.DBDeltaCheck.Core\Gator.DBDeltaCheck.Core.csproj" />
   </ItemGroup>
 

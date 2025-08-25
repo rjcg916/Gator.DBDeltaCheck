@@ -1,4 +1,4 @@
-﻿using EcommerceDemo.Data.Data;
+﻿
 using Gator.DBDeltaCheck.Core.Abstractions;
 using Gator.DBDeltaCheck.Core.Implementations;
 using Gator.DBDeltaCheck.Core.Implementations.Mapping;
@@ -7,7 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-
+using STARFake.EF;
+using STARFake.EF.Models;
 
 namespace Gator.DBDeltaCheck.Tools;
 
@@ -38,8 +39,8 @@ public static class Program
             .ConfigureServices((context, services) =>
             {
                 var connectionString = context.Configuration.GetConnectionString("DefaultConnection");
-                services.AddDbContext<ECommerceDbContext>(options => options.UseSqlServer(connectionString));
-                services.AddScoped<DbContext>(sp => sp.GetRequiredService<ECommerceDbContext>());
+                services.AddDbContext<STARContext>(options => options.UseSqlServer(connectionString));
+                services.AddScoped<DbContext>(sp => sp.GetRequiredService<STARContext>());
                 services.AddTransient<IDatabaseRepository, DapperDatabaseRepository>(sp => new DapperDatabaseRepository(connectionString));
                 services.AddSingleton<IDbSchemaService, EFCachingDbSchemaService>();
                 services.AddTransient<IDataMapperValueResolver, DataMapperValueResolver>();
