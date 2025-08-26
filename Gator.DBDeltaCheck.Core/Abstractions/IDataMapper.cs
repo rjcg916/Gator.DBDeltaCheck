@@ -10,10 +10,10 @@ public interface IDataMapper
 {
     /// <summary>Takes a "friendly" JSON template and resolves its lookups to real database IDs.
     /// </summary>
-    Task<string> ResolveToDbState(string templateJson, DataMap dataMap, string tableName);
+    Task<string> ResolveToDbState(string templateJson, DataMap dataMap, string tableName, Dictionary<string, string> columnLookups);
 
     /// <summary>
     /// Takes raw JSON from the database and maps its foreign keys to "friendly" values.
     /// </summary>
-    Task<string> MapToFriendlyState(string dbJson, DataMap dataMap, string tableName, bool excludeDefaults = false);
+    Task<string> MapToFriendlyState(string dbJson, DataMap dataMap, string tableName, Dictionary<string, string> columnOverrides, bool excludeDefaults = false);
 }

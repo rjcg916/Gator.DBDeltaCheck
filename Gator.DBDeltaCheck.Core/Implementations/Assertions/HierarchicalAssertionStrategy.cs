@@ -44,7 +44,7 @@ public class HierarchicalAssertionStrategy(
         var expectedDataPath = Path.Combine(basePath, expectedDataFile);
         var expectedStateJson = await File.ReadAllTextAsync(expectedDataPath);
         var mappedActualJson = await dataMapper.MapToFriendlyState(rawActualJson, dataMap ?? new DataMap() { Tables = []
-        }, rootEntityName);
+        }, rootEntityName, null);
 
         // 4. Get the correct comparison rule and execute it.
         var comparisonRule = ruleFactory.GetStrategy(comparisonRuleInfo.Name);

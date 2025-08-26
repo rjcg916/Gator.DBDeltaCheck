@@ -85,7 +85,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Seeding;
             }
 
             // Use the DataMapper to resolve all lookups.
-            var resolvedJson = await dataMapper.ResolveToDbState(recordForInsertion.ToString(), dataMap, tableName);
+            var resolvedJson = await dataMapper.ResolveToDbState(recordForInsertion.ToString(), dataMap, tableName, null);
             var finalData = JsonConvert.DeserializeObject<Dictionary<string, object>>(resolvedJson);
 
             // Add parent keys.

@@ -8,26 +8,26 @@ public class DataMapper(ResolveToDbStrategy resolveToDbStrategy, MapToFriendlySt
     : IDataMapper
 {
 
-    public Task<string> ResolveToDbState(string templateJson, DataMap? dataMap, string tableName)
+    public Task<string> ResolveToDbState(string templateJson, DataMap? dataMap, string tableName, Dictionary<string, string> columnOverrides)
     {
-        return ProcessAsync(templateJson, dataMap, tableName, resolveToDbStrategy, false);
+        return ProcessAsync(templateJson, dataMap, tableName, resolveToDbStrategy, columnOverrides, false);
     }
 
-    public Task<string> MapToFriendlyState(string dbJson, DataMap dataMap, string tableName, bool excludeDefaults = false)
+    public Task<string> MapToFriendlyState(string dbJson, DataMap dataMap, string tableName, Dictionary<string, string> columnOverrides, bool excludeDefaults = false)
     {
-        return ProcessAsync(dbJson, dataMap, tableName, mapToFriendlyStrategy, excludeDefaults);
+        return ProcessAsync(dbJson, dataMap, tableName, mapToFriendlyStrategy, columnOverrides, excludeDefaults);
     }
 
     private async Task<string> ProcessAsync(string sourceJson, DataMap? dataMap, string tableName,
-        IMappingStrategy strategy, bool excludeDefaults)
+        IMappingStrategy strategy, Dictionary<string, string> columnOverrides, bool excludeDefaults)
     {
         var token = JToken.Parse(sourceJson).DeepClone();
-        await ProcessToken(token, dataMap, tableName, strategy, excludeDefaults);
+        await ProcessToken(token, dataMap, tableName, strategy, columnOverrides, excludeDefaults);
         return token.ToString();
     }
 
 
-    private async Task ProcessToken(JToken token, DataMap? dataMap, string tableName, IMappingStrategy strategy, bool excludeDefaults)
+    private async Task ProcessToken(JToken token, DataMap? dataMap, string tableName, IMappingStrategy strategy, Dictionary<string, string> columnOverrides, bool excludeDefaults)
     {
         var tableMap = dataMap?.Tables.FirstOrDefault(t => t.Name.Equals(tableName, System.StringComparison.OrdinalIgnoreCase));
 
@@ -37,7 +37,7 @@ public class DataMapper(ResolveToDbStrategy resolveToDbStrategy, MapToFriendlySt
                 {
                     foreach (var item in array.Children<JObject>())
                     {
-                        await ProcessToken(item, dataMap, tableName, strategy, excludeDefaults);
+                        await ProcessToken(item, dataMap, tableName, strategy, columnOverrides, excludeDefaults);
                     }
 
                     break;
@@ -45,7 +45,7 @@ public class DataMapper(ResolveToDbStrategy resolveToDbStrategy, MapToFriendlySt
             case JObject obj:
                 {
                     // 1. Apply the mapping strategy to the current object.
-                    await strategy.Apply(obj, tableName, tableMap);
+                    await strategy.Apply(obj, tableName, tableMap, columnOverrides);
 
                     // 2. After mapping, find and process any nested child objects/arrays.
                     var schemaRelations = await schemaService.GetChildTablesAsync(tableName);
@@ -54,7 +54,7 @@ public class DataMapper(ResolveToDbStrategy resolveToDbStrategy, MapToFriendlySt
                         var childProperty = obj.Property(relation.ChildCollectionName, System.StringComparison.OrdinalIgnoreCase);
                         if (childProperty?.Value == null) continue;
 
-                        await ProcessToken(childProperty.Value, dataMap, relation.ChildTableName, strategy, excludeDefaults);
+                        await ProcessToken(childProperty.Value, dataMap, relation.ChildTableName, strategy, columnOverrides, excludeDefaults);
 
                         // After processing the children, if we are creating a "friendly" state,
                         // remove the parent's foreign key it's redundant in a hierarchy.

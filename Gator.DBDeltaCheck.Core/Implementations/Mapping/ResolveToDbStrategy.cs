@@ -11,7 +11,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Mapping;
 public class ResolveToDbStrategy(IDbSchemaService schemaService, IDataMapperValueResolver valueResolver)
     : IMappingStrategy
 {
-    public async Task Apply(JObject record, string tableName, TableMap? tableMap)
+    public async Task Apply(JObject record, string tableName, TableMap? tableMap, Dictionary<string, string> _ )
     {
         var lookupRules = (tableMap?.Lookups ?? new System.Collections.Generic.List<LookupRule>())
             .ToDictionary(r => r.DataProperty, r => r, System.StringComparer.OrdinalIgnoreCase);

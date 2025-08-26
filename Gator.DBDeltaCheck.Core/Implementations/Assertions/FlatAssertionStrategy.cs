@@ -45,7 +45,7 @@ public class FlatAssertionStrategy(
         // 4. If a data map is provided, transform the ACTUAL data into the "friendly" format.
         if (dataMap != null)
         {
-            finalActualStateJson = await dataMapper.MapToFriendlyState(rawActualStateJson, dataMap, tableName);
+            finalActualStateJson = await dataMapper.MapToFriendlyState(rawActualStateJson, dataMap, tableName, null);
         }
 
         // 5. Get the correct comparison rule and execute it.

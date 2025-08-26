@@ -7,7 +7,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Mapping;
 public class MapToFriendlyStrategy(IDbSchemaService schemaService, IDataMapperValueResolver valueResolver)
     : IMappingStrategy
 {
-    public async Task Apply(JObject record, string tableName, TableMap? tableMap)
+    public async Task Apply(JObject record, string tableName, TableMap? tableMap, Dictionary<string, string> columnOverrides)
     {
         if (tableMap?.Lookups == null)
         {
@@ -40,6 +40,9 @@ public class MapToFriendlyStrategy(IDbSchemaService schemaService, IDataMapperVa
 
         // Create a set of the friendly property names (e.g., "Customer") to ignore if they exist on the source.
         var navPropertyNames = new HashSet<string>(tableMap.Lookups.Select(r => r.DataProperty), System.StringComparer.OrdinalIgnoreCase);
+   
+        // Get entity metadata for type conversion of override values.
+        var entityType = await schemaService.GetEntityTypeAsync(tableName);
 
         // 1. Iterate through the original record's properties to copy scalars.
         foreach (var property in record.Properties())
@@ -50,8 +53,21 @@ public class MapToFriendlyStrategy(IDbSchemaService schemaService, IDataMapperVa
                 continue;
             }
 
-            // Otherwise, it's a scalar property we want to keep.            
-            cleanRecord.Add(property.Name, property.Value);
+            // Check for an override value. If one exists, use it. Otherwise, use the original value.
+            if (columnOverrides.TryGetValue(property.Name, out var overrideValue))
+            {
+                var efProperty = entityType?.GetProperties().FirstOrDefault(p => p.Name.Equals(property.Name, StringComparison.OrdinalIgnoreCase));
+                var propertyType = efProperty?.ClrType;
+
+                cleanRecord.Add(property.Name, MappingHelpers.ApplyOverrideValue(overrideValue, propertyType));
+            }
+            else
+            {
+                // Otherwise, it's a scalar property we want to keep.            
+                cleanRecord.Add(property.Name, property.Value);    
+            }
+
+    
         }
 
         // 2. Now, process the lookup rules to add the "friendly" properties.

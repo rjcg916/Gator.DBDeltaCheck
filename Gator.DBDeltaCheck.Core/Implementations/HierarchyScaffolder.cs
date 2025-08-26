@@ -1,4 +1,5 @@
 ﻿using Gator.DBDeltaCheck.Core.Abstractions;
+using Gator.DBDeltaCheck.Core.Implementations.Mapping;
 using Gator.DBDeltaCheck.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -17,6 +18,7 @@ public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
         DataMap dataMap,
         JObject rootTemplate,
         Dictionary<string, JArray> lookupTemplates,
+        Dictionary<string, string> columnOverrides,
         bool excludeDefaults)
     {
         var rootEntityType = FindEntityType(rootTableName);
@@ -33,7 +35,6 @@ public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
         // Ensure we only process each unique root key once to prevent duplicate output.
         var distinctRootKeys = rootKeys.Distinct().ToList();
 
-        // TODO: support override columns
         foreach (var key in distinctRootKeys)
         {
             // Pass the generated include paths to the query method.
@@ -41,7 +42,7 @@ public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
             if (rootObject == null) continue;
 
             var rawJson = JsonConvert.SerializeObject(rootObject, serializerSettings);
-            var mappedJson = await dataMapper.MapToFriendlyState(rawJson, dataMap, rootTableName, excludeDefaults);
+            var mappedJson = await dataMapper.MapToFriendlyState(rawJson, dataMap, rootTableName, columnOverrides, excludeDefaults);
             hierarchyData.Add(JObject.Parse(mappedJson));
         }
 
@@ -52,15 +53,13 @@ public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
             .SelectMany(t => t.Lookups)
             .Select(l => l.LookupTable)
             .Distinct(StringComparer.OrdinalIgnoreCase);
-
-
-        //TODO: support for override columns        
+  
         foreach (var tableName in lookupTableNames)
         {
             if (lookupTemplates.TryGetValue(tableName, out var lookupTemplateArray) &&
                 lookupTemplateArray.FirstOrDefault() is JObject lookupTemplateObject)
             {
-                var lookupJsonArray = await ScaffoldLookupTable(tableName, lookupTemplateObject);
+                var lookupJsonArray = await ScaffoldLookupTable(tableName, lookupTemplateObject, columnOverrides);
                 if (lookupJsonArray.Any())
                     lookupData[tableName] = lookupJsonArray;
             }
@@ -147,7 +146,7 @@ public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
     /// Scaffolds all rows from a lookup table, including only the columns
     /// that are not commented out in the provided template.
     /// </summary>
-    private async Task<JArray> ScaffoldLookupTable(string tableName, JObject template)
+    private async Task<JArray> ScaffoldLookupTable(string tableName, JObject template, Dictionary<string, string> columnOverrides)
     {
         // 1. Get the set of columns to include from the template.
         var columnsToInclude = template.Properties()
@@ -183,7 +182,14 @@ public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
             var entityJObject = new JObject();
             foreach (var propInfo in propertiesToMap)
             {
-                entityJObject[propInfo.Name] = JToken.FromObject(propInfo.GetValue(entity) ?? JValue.CreateNull());
+                if (columnOverrides.TryGetValue(propInfo.Name, out var overrideValue))
+                {
+                    entityJObject[propInfo.Name] = MappingHelpers.ApplyOverrideValue(overrideValue, propInfo.PropertyType);
+                }
+                else
+                {
+                    entityJObject[propInfo.Name] = JToken.FromObject(propInfo.GetValue(entity) ?? JValue.CreateNull());
+                }
             }
             jsonArray.Add(entityJObject);
         }
