@@ -36,6 +36,9 @@ public partial class CommandLineHandler
         [Option('e', "exclude-defaults", Default = false, HelpText = "Exclude columns with default values.")]
         public bool ExcludeDefaults { get; set; }
 
+        [Option("override-columns", Required = false, SetName = "keysource",  HelpText = "Key-value pairs to override specific column values. Format: 'ColumnName=Value'.")]
+        public IEnumerable<string> OverrideColumns { get; set; }
+
         [Option("generate-test-case", Default = false, HelpText = "Generate a basic .test.json file alongside the seed files. Only works with 'Single' output mode.")]
         public bool GenerateTestCase { get; set; }
     }
@@ -65,11 +68,32 @@ public partial class CommandLineHandler
         var mapContent = await File.ReadAllTextAsync(opts.MapFile);
         var dataMap = JsonConvert.DeserializeObject<DataMap>(mapContent);
 
+        // get column overrides
+        
+        var columnOverrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        if (opts.OverrideColumns?.Any() ?? false)
+        {
+            foreach (var pair in opts.OverrideColumns)
+            {
+                var parts = pair.Split('=', 2);
+                if (parts.Length == 2 && !string.IsNullOrEmpty(parts[0]))
+                {
+                    columnOverrides[parts[0].Trim()] = parts[1].Trim();
+                }
+                else
+                {
+                    Console.WriteLine($"Warning: Ignoring invalid format for override-column: '{pair}'. Expected 'ColumnName=Value'.");
+                }
+            }
+        }
+
+
         var lookupTemplates = await LoadLookupTemplatesAsync(dataMap, Path.GetDirectoryName(opts.TemplateFile));
 
         Console.WriteLine($"Scaffolding {rootKeys.Count} records from root table '{opts.RootTable}'...");
 
-        var (hierarchicalData, lookupData) = await scaffolder.Scaffold(opts.RootTable, rootKeys, dataMap, templateData, lookupTemplates, opts.ExcludeDefaults);
+        var (hierarchicalData, lookupData) = await scaffolder.Scaffold(opts.RootTable, rootKeys, dataMap, templateData, lookupTemplates, opts.ExcludeDefaults, columnOverrides);
 
         if (!hierarchicalData.Any() && rootKeys.Any())
         {

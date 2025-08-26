@@ -50,7 +50,7 @@ public class MapToFriendlyStrategy(IDbSchemaService schemaService, IDataMapperVa
                 continue;
             }
 
-            // Otherwise, it's a scalar property we want to keep.
+            // Otherwise, it's a scalar property we want to keep.            
             cleanRecord.Add(property.Name, property.Value);
         }
 

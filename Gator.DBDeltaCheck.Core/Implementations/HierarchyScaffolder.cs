@@ -30,7 +30,10 @@ public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
         // Generate the include paths ONCE from the template's structure.
         var includes = GenerateIncludePathsFromTemplate(rootEntityType, rootTemplate, null);
 
-        foreach (var key in rootKeys)
+        // Ensure we only process each unique root key once to prevent duplicate output.
+        var distinctRootKeys = rootKeys.Distinct().ToList();
+
+        foreach (var key in distinctRootKeys)
         {
             // Pass the generated include paths to the query method.
             var rootObject = await QueryHierarchy(rootEntityType, key, includes);
