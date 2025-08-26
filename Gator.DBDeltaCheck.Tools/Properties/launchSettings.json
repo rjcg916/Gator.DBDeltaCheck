@@ -2,7 +2,7 @@
   "profiles": {
     "Gator.DBDeltaCheck.Tools": {
       "commandName": "Project",
-      "commandLineArgs": "scaffold --root-table tblUsrsStg --map-file \"C:\\Users\\rgraham\\OneDrive - WCIRB\\Documents\\GeneratedKits\\tblUsrsStg\\tblUSRsStg_map.json\" --template-file \"C:\\Users\\rgraham\\OneDrive - WCIRB\\Documents\\GeneratedKits\\tblUsrsStg\\tblUSRsStg_template.json\" --output-path \"C:\\Users\\rgraham\\OneDrive - WCIRB\\Documents\\GeneratedKits\\tblUsrsStg\"  --keys \"12243477\"\r\n"
+      "commandLineArgs": "scaffold --root-table tblUsrsStg --map-file \"C:\\Users\\rgraham\\OneDrive - WCIRB\\Documents\\GeneratedKits\\tblUsrsStg\\tblUSRsStg_map.json\" --template-file \"C:\\Users\\rgraham\\OneDrive - WCIRB\\Documents\\GeneratedKits\\tblUsrsStg\\tblUSRsStg_template.json\" --output-path \"C:\\Users\\rgraham\\OneDrive - WCIRB\\Documents\\GeneratedKits\\tblUsrsStg\"  --keys \"12243477\" --override-columns=\"UpdatedUserId=1\"\r\n"
     }
   }
 }

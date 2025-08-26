@@ -1,4 +1,6 @@
-﻿namespace Gator.DBDeltaCheck.Core.Abstractions;
+﻿using Microsoft.EntityFrameworkCore.Metadata;
+
+namespace Gator.DBDeltaCheck.Core.Abstractions;
 
 /// <summary>
 ///     Provides metadata about the database schema, discovered from the DbContext.
@@ -32,6 +34,9 @@ public interface IDbSchemaService
     /// Gets a set of property names for a given table that have a database-defined default value.
     /// </summary>
     Task<HashSet<string>> GetPropertyNamesWithDefaultsAsync(string tableName);
+
+    Task<IEntityType?> GetEntityTypeAsync(string tableName);
+
 }
 
 /// <summary>

@@ -69,7 +69,7 @@ public partial class CommandLineHandler
         var dataMap = JsonConvert.DeserializeObject<DataMap>(mapContent);
 
         // get column overrides
-        
+
         var columnOverrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         if (opts.OverrideColumns?.Any() ?? false)
@@ -93,7 +93,8 @@ public partial class CommandLineHandler
 
         Console.WriteLine($"Scaffolding {rootKeys.Count} records from root table '{opts.RootTable}'...");
 
-        var (hierarchicalData, lookupData) = await scaffolder.Scaffold(opts.RootTable, rootKeys, dataMap, templateData, lookupTemplates, opts.ExcludeDefaults, columnOverrides);
+        // TODO: support override columns
+        var (hierarchicalData, lookupData) = await scaffolder.Scaffold(opts.RootTable, rootKeys, dataMap, templateData, lookupTemplates, opts.ExcludeDefaults);
 
         if (!hierarchicalData.Any() && rootKeys.Any())
         {

@@ -7,8 +7,8 @@ namespace Gator.DBDeltaCheck.Core.Implementations.Mapping;
 public class DataMapper(ResolveToDbStrategy resolveToDbStrategy, MapToFriendlyStrategy mapToFriendlyStrategy, IDbSchemaService schemaService)
     : IDataMapper
 {
-   
-   public Task<string> ResolveToDbState(string templateJson, DataMap? dataMap, string tableName)
+
+    public Task<string> ResolveToDbState(string templateJson, DataMap? dataMap, string tableName)
     {
         return ProcessAsync(templateJson, dataMap, tableName, resolveToDbStrategy, false);
     }
@@ -34,50 +34,70 @@ public class DataMapper(ResolveToDbStrategy resolveToDbStrategy, MapToFriendlySt
         switch (token)
         {
             case JArray array:
-            {
-                foreach (var item in array.Children<JObject>())
                 {
-                    await ProcessToken(item, dataMap, tableName, strategy, excludeDefaults);
-                }
-
-                break;
-            }
-            case JObject obj:
-            {
-                // 1. Apply the mapping strategy to the current object.
-                await strategy.Apply(obj, tableName, tableMap);
-
-                // 2. After mapping, find and process any nested child objects/arrays.
-                var schemaRelations = await schemaService.GetChildTablesAsync(tableName);
-                foreach (var relation in schemaRelations)
-                {
-                    var childProperty = obj.Property(relation.ChildCollectionName, System.StringComparison.OrdinalIgnoreCase);
-                    if (childProperty?.Value == null) continue;
-
-                    await ProcessToken(childProperty.Value, dataMap, relation.ChildTableName, strategy, excludeDefaults);
-
-                    // After processing the children, if we are creating a "friendly" state,
-                    // remove the parent's foreign key it's redundant in a hierarchy.
-               
-                    if (strategy is not MapToFriendlyStrategy || childProperty.Value is not JArray childArray) continue;
-
-                    // Get the name of the FK column on the child table that refers back to the parent.
-                    var fkColumn = await schemaService.GetForeignKeyColumnNameAsync(relation.ChildTableName, tableName);
-                    if (string.IsNullOrEmpty(fkColumn)) continue;
-                    foreach (var childItem in childArray.Children<JObject>())
+                    foreach (var item in array.Children<JObject>())
                     {
-                        childItem.Property(fkColumn, System.StringComparison.OrdinalIgnoreCase)?.Remove();
+                        await ProcessToken(item, dataMap, tableName, strategy, excludeDefaults);
                     }
-                }
 
-                // 3. Handle default property exclusion if required.
-                if (excludeDefaults && strategy is MapToFriendlyStrategy)
+                    break;
+                }
+            case JObject obj:
                 {
-                    await RemoveDefaultProperties(obj, tableName, tableMap);
-                }
+                    // 1. Apply the mapping strategy to the current object.
+                    await strategy.Apply(obj, tableName, tableMap);
 
-                break;
-            }
+                    // 2. After mapping, find and process any nested child objects/arrays.
+                    var schemaRelations = await schemaService.GetChildTablesAsync(tableName);
+                    foreach (var relation in schemaRelations)
+                    {
+                        var childProperty = obj.Property(relation.ChildCollectionName, System.StringComparison.OrdinalIgnoreCase);
+                        if (childProperty?.Value == null) continue;
+
+                        await ProcessToken(childProperty.Value, dataMap, relation.ChildTableName, strategy, excludeDefaults);
+
+                        // After processing the children, if we are creating a "friendly" state,
+                        // remove the parent's foreign key it's redundant in a hierarchy.
+
+                        if (strategy is not MapToFriendlyStrategy || childProperty.Value is not JArray childArray) continue;
+
+                        // Get the name of the FK column on the child table that refers back to the parent.
+                        var fkColumn = await schemaService.GetForeignKeyColumnNameAsync(relation.ChildTableName, tableName);
+                        if (string.IsNullOrEmpty(fkColumn)) continue;
+                        foreach (var childItem in childArray.Children<JObject>())
+                        {
+                            childItem.Property(fkColumn, System.StringComparison.OrdinalIgnoreCase)?.Remove();
+                        }
+                    }
+
+                    // 3. Handle default property exclusion if required.
+                    if (excludeDefaults && strategy is MapToFriendlyStrategy)
+                    {
+                        await RemoveDefaultProperties(obj, tableName, tableMap);
+                    }
+
+                    // 4. For friendly mapping, remove any eagerly loaded navigation properties
+                    // that do not have a corresponding "friendly" lookup rule. This prevents
+                    // redundant objects (like 'UpdateUser') from appearing alongside their
+                    // foreign key IDs ('UpdatedUserId').
+                    if (strategy is MapToFriendlyStrategy)
+                    {
+                        var entityType = await schemaService.GetEntityTypeAsync(tableName);
+                        if (entityType != null)
+                        {
+                            foreach (var nav in entityType.GetNavigations().Where(n => !n.IsCollection))
+                            {
+                                var hasLookupRule = tableMap?.Lookups.Any(l => l.DataProperty.Equals(nav.Name, StringComparison.OrdinalIgnoreCase)) ?? false;
+                                if (!hasLookupRule)
+                                {
+                                    obj.Property(nav.Name, StringComparison.OrdinalIgnoreCase)?.Remove();
+                                }
+                            }
+                        }
+                    }
+
+                    break;
+                }
         }
     }
     /// <summary>
