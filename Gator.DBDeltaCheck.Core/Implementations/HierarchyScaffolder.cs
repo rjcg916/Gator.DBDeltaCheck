@@ -10,7 +10,7 @@ namespace Gator.DBDeltaCheck.Core.Implementations;
 
 public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
 {
-    // The main method is updated to accept the parsed template JObject.
+
     public async Task<(List<JObject> HierarchicalData, Dictionary<string, JArray> LookupData)> Scaffold(
         string rootTableName,
         IEnumerable<object> rootKeys,
@@ -20,7 +20,7 @@ public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
         bool excludeDefaults)
     {
         var rootEntityType = FindEntityType(rootTableName);
-        var allHierarchies = new List<JObject>();
+        var hierarchyData = new List<JObject>();
 
         var serializerSettings = new JsonSerializerSettings
         {
@@ -33,6 +33,7 @@ public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
         // Ensure we only process each unique root key once to prevent duplicate output.
         var distinctRootKeys = rootKeys.Distinct().ToList();
 
+        // TODO: support override columns
         foreach (var key in distinctRootKeys)
         {
             // Pass the generated include paths to the query method.
@@ -41,16 +42,19 @@ public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
 
             var rawJson = JsonConvert.SerializeObject(rootObject, serializerSettings);
             var mappedJson = await dataMapper.MapToFriendlyState(rawJson, dataMap, rootTableName, excludeDefaults);
-            allHierarchies.Add(JObject.Parse(mappedJson));
+            hierarchyData.Add(JObject.Parse(mappedJson));
         }
 
         // Scaffold all lookup tables defined in the data map.
+
         var lookupData = new Dictionary<string, JArray>();
         var lookupTableNames = dataMap.Tables
             .SelectMany(t => t.Lookups)
             .Select(l => l.LookupTable)
             .Distinct(StringComparer.OrdinalIgnoreCase);
 
+
+        //TODO: support for override columns        
         foreach (var tableName in lookupTableNames)
         {
             if (lookupTemplates.TryGetValue(tableName, out var lookupTemplateArray) &&
@@ -62,7 +66,7 @@ public class HierarchyScaffolder(DbContext dbContext, IDataMapper dataMapper)
             }
         }
 
-        return (allHierarchies, lookupData);
+        return (hierarchyData, lookupData);
     }
 
     private async Task<object?> QueryHierarchy(IEntityType entityType, object id, List<string> includePaths)
